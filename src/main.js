@@ -18,11 +18,14 @@ import {
   adicionarFigura,
   adicionarSecao,
   adicionarTabela,
+  atualizarFicha,
   atualizarTextoSecao,
   exportarProjeto,
   importarProjeto,
   inserirCitacaoNaSecao,
+  moverFicha,
   moverSecao,
+  removerFicha,
 } from './domain/projeto.mjs';
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
 import { criarTag, linhaDeTags } from './domain/tag.mjs';
@@ -233,6 +236,12 @@ function conectarEventos() {
 
   document.querySelectorAll('[data-subir]').forEach((botao) => botao.addEventListener('click', () => moverBloco(botao.dataset.subir, -1)));
   document.querySelectorAll('[data-descer]').forEach((botao) => botao.addEventListener('click', () => moverBloco(botao.dataset.descer, 1)));
+  document.querySelectorAll('[data-ficha-subir]').forEach((botao) => botao.addEventListener('click', () => moverFichaNaFila(botao.dataset.fichaSubir, -1)));
+  document.querySelectorAll('[data-ficha-descer]').forEach((botao) => botao.addEventListener('click', () => moverFichaNaFila(botao.dataset.fichaDescer, 1)));
+  document.querySelectorAll('[data-ficha-remover]').forEach((botao) => botao.addEventListener('click', () => apagarFicha(botao.dataset.fichaRemover)));
+  document.querySelectorAll('[data-assunto-ficha]').forEach((campo) => {
+    campo.addEventListener('change', () => editarFicha(campo.dataset.assuntoFicha, campo.value));
+  });
   document.querySelectorAll('[data-texto-bloco]').forEach((campo) => {
     campo.addEventListener('change', () => atualizarTextoBloco(campo.dataset.textoBloco, campo.value));
     campo.addEventListener('dragover', (evento) => evento.preventDefault());
@@ -284,6 +293,18 @@ function moverBloco(id, direcao) {
   setEstado(moverSecao(estado, { id, direcao }));
 }
 
+function moverFichaNaFila(id, direcao) {
+  setEstado(moverFicha(estado, { id, direcao }));
+}
+
+function editarFicha(id, assunto) {
+  setEstado(atualizarFicha(estado, { id, assunto }));
+}
+
+function apagarFicha(id) {
+  setEstado(removerFicha(estado, { id }));
+}
+
 function atualizarTextoBloco(id, texto) {
   setEstado(atualizarTextoSecao(estado, { id, texto }));
 }
@@ -315,7 +336,18 @@ function recomecarProjeto() {
 
 function cardFicha(ficha) {
   const limite = validarLimite({ tipo: ficha.tipo, texto: ficha.assunto });
-  return `<div class="ficha"><strong>${escapeHtml(ficha.assunto)}</strong><span>${escapeHtml(ficha.tipo)} · ordem ${ficha.ordemImpressao}</span><small>${limite.valido ? 'dentro do limite' : 'excede limite'}</small></div>`;
+  return `
+    <div class="ficha">
+      <input data-assunto-ficha="${escapeAttr(ficha.id)}" value="${escapeAttr(ficha.assunto)}" aria-label="Assunto da ficha" />
+      <span>${escapeHtml(ficha.tipo)} · ordem ${ficha.ordemImpressao}</span>
+      <small>${limite.valido ? 'dentro do limite' : 'excede limite'}</small>
+      <div class="mini-actions">
+        <button type="button" class="icon-button" data-ficha-subir="${escapeAttr(ficha.id)}" title="Subir ficha">↑</button>
+        <button type="button" class="icon-button" data-ficha-descer="${escapeAttr(ficha.id)}" title="Descer ficha">↓</button>
+        <button type="button" data-ficha-remover="${escapeAttr(ficha.id)}">Remover</button>
+      </div>
+    </div>
+  `;
 }
 
 function cardCitacao(citacao) {

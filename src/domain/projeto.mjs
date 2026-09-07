@@ -16,6 +16,33 @@ export function adicionarFicha(projeto, { tipo, assunto }) {
   return { ...projeto, fichas: [...projeto.fichas, ficha] };
 }
 
+export function atualizarFicha(projeto, { id, assunto, tipo }) {
+  const fichas = projeto.fichas.map((ficha) =>
+    ficha.id === id
+      ? {
+          ...ficha,
+          assunto: assunto ?? ficha.assunto,
+          tipo: tipo ?? ficha.tipo,
+        }
+      : ficha,
+  );
+  return { ...projeto, fichas };
+}
+
+export function removerFicha(projeto, { id }) {
+  return { ...projeto, fichas: renumerarFichas(projeto.fichas.filter((ficha) => ficha.id !== id)) };
+}
+
+export function moverFicha(projeto, { id, direcao }) {
+  const de = projeto.fichas.findIndex((ficha) => ficha.id === id);
+  const para = de + direcao;
+  if (de < 0 || para < 0 || para >= projeto.fichas.length) return projeto;
+  const fichas = [...projeto.fichas];
+  const [ficha] = fichas.splice(de, 1);
+  fichas.splice(para, 0, ficha);
+  return { ...projeto, fichas: renumerarFichas(fichas) };
+}
+
 export function adicionarCitacao(projeto, { texto, pagina, tipo = 'direta' }) {
   const citacao = {
     id: uid('cit'),
@@ -124,6 +151,10 @@ function unicaPorId(itens) {
 
 function unicaPorFonte(itens) {
   return [...new Map(itens.map((item) => [item.fonteId, item])).values()];
+}
+
+function renumerarFichas(fichas) {
+  return fichas.map((ficha, indice) => ({ ...ficha, ordemImpressao: indice + 1 }));
 }
 
 function uid(prefixo) {

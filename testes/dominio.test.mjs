@@ -23,8 +23,11 @@ import {
   adicionarFigura,
   adicionarSecao,
   adicionarTabela,
+  atualizarFicha,
   inserirCitacaoNaSecao,
+  moverFicha,
   moverSecao,
+  removerFicha,
   exportarProjeto,
   importarProjeto,
 } from '../src/domain/projeto.mjs';
@@ -309,6 +312,27 @@ teste('projeto_exportado_importa_com_os_mesmos_dados_editaveis', () => {
   const restaurado = importarProjeto(pacote);
   assert.equal(restaurado.fichas[0].assunto, 'Contratos');
   assert.equal(restaurado.monografia.blocos[0].titulo, 'Introducao');
+});
+
+teste('atualizar_ficha_altera_assunto_sem_mudar_ordem', () => {
+  let projeto = adicionarFicha(projetoBase(), { tipo: 'texto', assunto: 'Antigo' });
+  projeto = atualizarFicha(projeto, { id: projeto.fichas[0].id, assunto: 'Novo' });
+  assert.equal(projeto.fichas[0].assunto, 'Novo');
+  assert.equal(projeto.fichas[0].ordemImpressao, 1);
+});
+
+teste('remover_ficha_retira_item_e_renumera_fila', () => {
+  let projeto = adicionarFicha(projetoBase(), { tipo: 'texto', assunto: 'A' });
+  projeto = adicionarFicha(projeto, { tipo: 'texto', assunto: 'B' });
+  projeto = removerFicha(projeto, { id: projeto.fichas[0].id });
+  assert.deepEqual(projeto.fichas.map((f) => [f.assunto, f.ordemImpressao]), [['B', 1]]);
+});
+
+teste('mover_ficha_altera_a_fila_de_impressao', () => {
+  let projeto = adicionarFicha(projetoBase(), { tipo: 'texto', assunto: 'A' });
+  projeto = adicionarFicha(projeto, { tipo: 'texto', assunto: 'B' });
+  projeto = moverFicha(projeto, { id: projeto.fichas[1].id, direcao: -1 });
+  assert.deepEqual(projeto.fichas.map((f) => [f.assunto, f.ordemImpressao]), [['B', 1], ['A', 2]]);
 });
 
 console.log(`\n${passou} testes passaram, ${falhas.length} falharam.`);

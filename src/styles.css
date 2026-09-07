@@ -212,6 +212,16 @@ button:hover {
   justify-content: space-between;
 }
 
+.mini-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ficha input {
+  width: 100%;
+}
+
 .icon-button {
   align-items: center;
   display: inline-flex;
