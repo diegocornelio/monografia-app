@@ -1,0 +1,33 @@
+name: ping de atividade (reserva)
+
+# Paliativo do §12.1 do planejamento. O caminho principal e o Cron Trigger de
+# Worker na Cloudflare; este workflow existe como segunda linha, para o caso de
+# o Worker parar. Dois mecanismos independentes, porque a falha do paliativo e
+# silenciosa por natureza.
+#
+# Aposentar os dois no dia em que houver terceiro dependendo do sistema: o plano
+# pago do Supabase remove a pausa e traz backup.
+
+on:
+  schedule:
+    - cron: '0 6 */3 * *'
+  workflow_dispatch:
+
+jobs:
+  pingar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: tocar a tabela de saude
+        run: |
+          codigo=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "$SUPABASE_URL/rest/v1/saude" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: resolution=merge-duplicates" \
+            -d '{"id":1,"visto_em":"'"$(date -u +%FT%TZ)"'"}')
+          echo "resposta: $codigo"
+          test "$codigo" -lt 400
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}

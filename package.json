@@ -1,0 +1,15 @@
+{
+  "name": "fichario",
+  "version": "0.1.0",
+  "description": "Fichamento e construtor de monografia ABNT",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "teste:dominio": "node testes/dominio.test.mjs",
+    "tdd": "node testes/tdd.mjs",
+    "tdd:relatorio": "node testes/tdd.mjs --silencioso",
+    "tdd:fechar-fase": "node testes/tdd.mjs --silencioso --exigir-verde",
+    "cobertura": "node testes/cobertura.mjs",
+    "checagem": "./scripts/checagem.sh"
+  }
+}

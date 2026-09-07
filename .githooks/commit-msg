@@ -1,0 +1,13 @@
+#!/bin/sh
+# Rejeita rodapes de ferramenta e mensagens fora do padrao do projeto.
+mensagem=$(cat "$1")
+if printf '%s' "$mensagem" | grep -Eqi 'co-authored-by|generated with|assistente de ia|claude|copilot'; then
+  echo "commit-msg: rodape de ferramenta nao e permitido nesta base." >&2
+  exit 1
+fi
+primeira=$(printf '%s' "$mensagem" | head -n1)
+if [ ${#primeira} -gt 72 ]; then
+  echo "commit-msg: a primeira linha deve ter ate 72 caracteres." >&2
+  exit 1
+fi
+exit 0

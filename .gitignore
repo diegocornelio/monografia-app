@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+*.local
+.DS_Store
+playwright-report/
+test-results/
+RELATORIO.md
+registro-checagem.log
+.checagem-instalada-em
+.fase-atual

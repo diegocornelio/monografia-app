@@ -1,0 +1,42 @@
+name: publicar no cloudflare pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-producao
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: portoes e publicacao
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      # Nenhum artefato vai ao ar sem os portoes do MARCO_PUBLICACAO_V1 §4.
+      - name: especificacao sem vermelho
+        run: node testes/tdd.mjs --silencioso
+      - name: nenhuma feature do catalogo sem teste
+        run: node testes/cobertura.mjs
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run teste:unit
+      - run: npm run build
+
+      - name: publicar
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=fichario --branch=main

@@ -1,0 +1,75 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+jobs:
+  dominio:
+    name: testes de dominio
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: testes puros do dominio
+        run: npm run teste:dominio
+
+  especificacao:
+    name: especificacao executavel (TDD)
+    runs-on: ubuntu-latest
+    needs: dominio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: nenhuma especificacao vermelha
+        run: npm run tdd -- --silencioso
+      - name: nenhuma feature do catalogo sem teste
+        run: npm run cobertura
+
+  qualidade:
+    name: lint, tipos e build
+    runs-on: ubuntu-latest
+    needs: dominio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run teste:unit
+      - run: npm run build
+
+  fase:
+    name: portao de fechamento de fase
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/fase-')
+    needs: especificacao
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: fase so fecha com a especificacao inteira verde
+        run: npm run tdd:fechar-fase
+
+  guardrails:
+    name: prompt sem guardrails reprova
+    runs-on: ubuntu-latest
+    needs: dominio
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: test -f guardrails.md
+      - run: npm ci
+      - run: npm run teste:guardrails

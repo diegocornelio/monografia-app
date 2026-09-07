@@ -1,0 +1,3 @@
+# SPA: qualquer rota devolve o index, senao recarregar /monografia da 404.
+# Regras especificas vao ACIMA desta linha; o catch-all e sempre o ultimo.
+/*    /index.html   200
