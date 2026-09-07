@@ -20,6 +20,8 @@ import {
   adicionarTabela,
   atualizarCitacao,
   atualizarFicha,
+  atualizarFigura,
+  atualizarTabela,
   atualizarTextoSecao,
   exportarProjeto,
   importarProjeto,
@@ -28,7 +30,9 @@ import {
   moverSecao,
   removerCitacao,
   removerFicha,
+  removerFigura,
   removerSecao,
+  removerTabela,
 } from './domain/projeto.mjs';
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
 import { criarTag, linhaDeTags } from './domain/tag.mjs';
@@ -189,7 +193,7 @@ function desenhar(filtro = filtroAtual) {
             <input name="altText" placeholder="Texto alternativo" required />
             <button type="submit">Inserir imagem</button>
           </form>
-          <div class="lista">${figuras.map((figura) => `<p>${escapeHtml(figura.rotulo)}</p>`).join('')}</div>
+          <div class="lista">${figuras.map(cardFigura).join('')}</div>
         </article>
 
         <article class="panel">
@@ -199,7 +203,7 @@ function desenhar(filtro = filtroAtual) {
             <input name="titulo" placeholder="Titulo da tabela" required />
             <button type="submit">Inserir tabela</button>
           </form>
-          <div class="lista">${tabelas.map((tabela) => `<p>${escapeHtml(tabela.rotulo)}</p>`).join('')}</div>
+          <div class="lista">${tabelas.map(cardTabela).join('')}</div>
         </article>
 
         <article class="panel">
@@ -244,6 +248,8 @@ function conectarEventos() {
   document.querySelectorAll('[data-ficha-remover]').forEach((botao) => botao.addEventListener('click', () => apagarFicha(botao.dataset.fichaRemover)));
   document.querySelectorAll('[data-citacao-remover]').forEach((botao) => botao.addEventListener('click', () => apagarCitacao(botao.dataset.citacaoRemover)));
   document.querySelectorAll('[data-bloco-remover]').forEach((botao) => botao.addEventListener('click', () => apagarBloco(botao.dataset.blocoRemover)));
+  document.querySelectorAll('[data-figura-remover]').forEach((botao) => botao.addEventListener('click', () => apagarFigura(botao.dataset.figuraRemover)));
+  document.querySelectorAll('[data-tabela-remover]').forEach((botao) => botao.addEventListener('click', () => apagarTabela(botao.dataset.tabelaRemover)));
   document.querySelectorAll('[data-assunto-ficha]').forEach((campo) => {
     campo.addEventListener('change', () => editarFicha(campo.dataset.assuntoFicha, campo.value));
   });
@@ -252,6 +258,13 @@ function conectarEventos() {
   });
   document.querySelectorAll('[data-pagina-citacao]').forEach((campo) => {
     campo.addEventListener('change', () => editarCitacao(campo.dataset.paginaCitacao));
+  });
+  document.querySelectorAll('[data-legenda-figura], [data-alt-figura]').forEach((campo) => {
+    const id = campo.dataset.legendaFigura ?? campo.dataset.altFigura;
+    campo.addEventListener('change', () => editarFigura(id));
+  });
+  document.querySelectorAll('[data-titulo-tabela]').forEach((campo) => {
+    campo.addEventListener('change', () => editarTabela(campo.dataset.tituloTabela));
   });
   document.querySelectorAll('[data-texto-bloco]').forEach((campo) => {
     campo.addEventListener('change', () => atualizarTextoBloco(campo.dataset.textoBloco, campo.value));
@@ -330,6 +343,25 @@ function apagarBloco(id) {
   setEstado(removerSecao(estado, { id }));
 }
 
+function editarFigura(id) {
+  const legenda = document.querySelector(`[data-legenda-figura="${cssEscape(id)}"]`)?.value;
+  const altText = document.querySelector(`[data-alt-figura="${cssEscape(id)}"]`)?.value;
+  setEstado(atualizarFigura(estado, { id, legenda, altText }));
+}
+
+function apagarFigura(id) {
+  setEstado(removerFigura(estado, { id }));
+}
+
+function editarTabela(id) {
+  const titulo = document.querySelector(`[data-titulo-tabela="${cssEscape(id)}"]`)?.value;
+  setEstado(atualizarTabela(estado, { id, titulo }));
+}
+
+function apagarTabela(id) {
+  setEstado(removerTabela(estado, { id }));
+}
+
 function atualizarTextoBloco(id, texto) {
   setEstado(atualizarTextoSecao(estado, { id, texto }));
 }
@@ -399,6 +431,27 @@ function cardBloco(bloco, indice) {
       </div>
       <textarea data-texto-bloco="${escapeAttr(bloco.id)}" aria-label="Texto da secao ${indice + 1}">${escapeHtml(bloco.texto)}</textarea>
     </section>
+  `;
+}
+
+function cardFigura(figura) {
+  return `
+    <div class="item-editavel">
+      <input data-legenda-figura="${escapeAttr(figura.id)}" value="${escapeAttr(figura.legenda)}" aria-label="Legenda da figura" />
+      <input data-alt-figura="${escapeAttr(figura.id)}" value="${escapeAttr(figura.altText)}" aria-label="Texto alternativo da figura" />
+      <small>${escapeHtml(figura.rotulo)}</small>
+      <button type="button" data-figura-remover="${escapeAttr(figura.id)}">Remover imagem</button>
+    </div>
+  `;
+}
+
+function cardTabela(tabela) {
+  return `
+    <div class="item-editavel">
+      <input data-titulo-tabela="${escapeAttr(tabela.id)}" value="${escapeAttr(tabela.titulo)}" aria-label="Titulo da tabela" />
+      <small>${escapeHtml(tabela.rotulo)}</small>
+      <button type="button" data-tabela-remover="${escapeAttr(tabela.id)}">Remover tabela</button>
+    </div>
   `;
 }
 

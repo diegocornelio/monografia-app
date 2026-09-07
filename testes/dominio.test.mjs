@@ -25,12 +25,16 @@ import {
   adicionarTabela,
   atualizarCitacao,
   atualizarFicha,
+  atualizarFigura,
+  atualizarTabela,
   inserirCitacaoNaSecao,
   moverFicha,
   moverSecao,
   removerCitacao,
   removerFicha,
+  removerFigura,
   removerSecao,
+  removerTabela,
   exportarProjeto,
   importarProjeto,
 } from '../src/domain/projeto.mjs';
@@ -361,6 +365,33 @@ teste('remover_secao_retira_bloco_e_seus_itens_vinculados', () => {
   assert.equal(projeto.monografia.figuras.length, 0);
   assert.equal(projeto.monografia.tabelas.length, 0);
   assert.equal(projeto.monografia.blocos[0].numero, '1');
+});
+
+teste('atualizar_figura_corrige_legenda_e_alt_text', () => {
+  let projeto = adicionarFigura(projetoBase(), { blocoId: 'b1', legenda: 'Antiga', altText: 'Antigo' });
+  projeto = atualizarFigura(projeto, { id: projeto.monografia.figuras[0].id, legenda: 'Nova', altText: 'Novo' });
+  assert.equal(projeto.monografia.figuras[0].legenda, 'Nova');
+  assert.equal(projeto.monografia.figuras[0].altText, 'Novo');
+});
+
+teste('remover_figura_nao_remove_a_secao', () => {
+  let projeto = adicionarFigura(projetoBase(), { blocoId: 'b1', legenda: 'Mapa', altText: 'Mapa' });
+  projeto = removerFigura(projeto, { id: projeto.monografia.figuras[0].id });
+  assert.equal(projeto.monografia.figuras.length, 0);
+  assert.equal(projeto.monografia.blocos.length, 2);
+});
+
+teste('atualizar_tabela_corrige_titulo', () => {
+  let projeto = adicionarTabela(projetoBase(), { blocoId: 'b1', titulo: 'Antigo' });
+  projeto = atualizarTabela(projeto, { id: projeto.monografia.tabelas[0].id, titulo: 'Novo' });
+  assert.equal(projeto.monografia.tabelas[0].titulo, 'Novo');
+});
+
+teste('remover_tabela_nao_remove_a_secao', () => {
+  let projeto = adicionarTabela(projetoBase(), { blocoId: 'b1', titulo: 'Dados' });
+  projeto = removerTabela(projeto, { id: projeto.monografia.tabelas[0].id });
+  assert.equal(projeto.monografia.tabelas.length, 0);
+  assert.equal(projeto.monografia.blocos.length, 2);
 });
 
 console.log(`\n${passou} testes passaram, ${falhas.length} falharam.`);

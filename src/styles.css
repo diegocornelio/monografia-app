@@ -173,14 +173,18 @@ button:hover {
   width: auto;
 }
 
-.citacao {
+.citacao,
+.item-editavel {
   background: #f3f7f8;
   border: 1px dashed #7da1aa;
   border-radius: 8px;
-  cursor: grab;
   display: grid;
   gap: 6px;
   padding: 12px;
+}
+
+.citacao {
+  cursor: grab;
 }
 
 .citacao:active {
@@ -189,7 +193,9 @@ button:hover {
 
 .citacao input,
 .citacao textarea,
-.citacao button {
+.citacao button,
+.item-editavel input,
+.item-editavel button {
   width: 100%;
 }
 

@@ -144,6 +144,24 @@ export function adicionarFigura(projeto, { blocoId, legenda, altText }) {
   return comMonografia(projeto, { figuras });
 }
 
+export function atualizarFigura(projeto, { id, legenda, altText }) {
+  const figuras = projeto.monografia.figuras.map((figura) =>
+    figura.id === id
+      ? {
+          ...figura,
+          legenda: legenda ?? figura.legenda,
+          altText: altText ?? figura.altText,
+        }
+      : figura,
+  );
+  return comMonografia(projeto, { figuras });
+}
+
+export function removerFigura(projeto, { id }) {
+  const figuras = projeto.monografia.figuras.filter((figura) => figura.id !== id);
+  return comMonografia(projeto, { figuras });
+}
+
 export function adicionarTabela(projeto, { blocoId, titulo }) {
   const tabelas = [
     ...projeto.monografia.tabelas,
@@ -155,6 +173,23 @@ export function adicionarTabela(projeto, { blocoId, titulo }) {
       pagina: paginaDoBloco(projeto, blocoId),
     },
   ];
+  return comMonografia(projeto, { tabelas });
+}
+
+export function atualizarTabela(projeto, { id, titulo }) {
+  const tabelas = projeto.monografia.tabelas.map((tabela) =>
+    tabela.id === id
+      ? {
+          ...tabela,
+          titulo: titulo ?? tabela.titulo,
+        }
+      : tabela,
+  );
+  return comMonografia(projeto, { tabelas });
+}
+
+export function removerTabela(projeto, { id }) {
+  const tabelas = projeto.monografia.tabelas.filter((tabela) => tabela.id !== id);
   return comMonografia(projeto, { tabelas });
 }
 
