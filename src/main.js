@@ -6,6 +6,7 @@ import { verificar } from './domain/abnt/verificador.mjs';
 import { avaliar } from './domain/acervo/dedup.mjs';
 import { lerBibTeX } from './domain/acervo/importadores.mjs';
 import { filtrar } from './domain/busca.mjs';
+import { mascarar } from './domain/agente/credencial.mjs';
 import { apresentar, criarCitacao } from './domain/citacao.mjs';
 import { criarFicha } from './domain/ficha.mjs';
 import { validarLimite } from './domain/limites.mjs';
@@ -43,6 +44,7 @@ import { montar as montarGrafico } from './ui/graficos/GraficoNarrado.mjs';
 
 const CHAVE_ESTADO = 'fichario.estado.v1';
 let filtroAtual = '';
+let chaveAgenteSessao = null;
 
 const estadoInicial = {
   fonte: {
@@ -225,6 +227,21 @@ function desenhar(filtro = filtroAtual) {
           <h2>Orientacao solo</h2>
           <div class="ficha"><strong>Rastro</strong><span>${escapeHtml(rastro.objetivo)}</span><small>${rastro.evidencias.length} evidencia(s)</small></div>
         </article>
+
+        <article class="panel span-2">
+          <h2>Agente IA</h2>
+          <form id="form-agente" class="section-form">
+            <select name="provedor">
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="google">Google</option>
+            </select>
+            <input name="chave" type="password" placeholder="Chave da sessao" />
+            <button type="submit">Usar nesta sessao</button>
+          </form>
+          <p>${chaveAgenteSessao ? `Chave ativa: ${escapeHtml(mascarar(chaveAgenteSessao.chave))}` : 'Sem chave ativa nesta sessao'}</p>
+          <p class="muted">Fase 4 iniciada: agente pode propor anotacao, nunca aplicar texto sem confirmacao.</p>
+        </article>
       </section>
     </main>
   `;
@@ -240,6 +257,7 @@ function conectarEventos() {
   document.querySelector('#form-bloco').addEventListener('submit', criarNovoBloco);
   document.querySelector('#form-figura').addEventListener('submit', criarNovaFigura);
   document.querySelector('#form-tabela').addEventListener('submit', criarNovaTabela);
+  document.querySelector('#form-agente').addEventListener('submit', configurarAgente);
   document.querySelector('#exportar').addEventListener('click', baixarProjeto);
   document.querySelector('#importar').addEventListener('change', importarArquivo);
   document.querySelector('#recomecar').addEventListener('click', recomecarProjeto);
@@ -403,6 +421,13 @@ async function importarArquivo(evento) {
 
 function recomecarProjeto() {
   setEstado(structuredClone(estadoInicial));
+}
+
+function configurarAgente(evento) {
+  evento.preventDefault();
+  const dados = Object.fromEntries(new FormData(evento.target));
+  chaveAgenteSessao = dados.chave ? { provedor: dados.provedor, chave: dados.chave } : null;
+  desenhar();
 }
 
 function cardFicha(ficha) {
