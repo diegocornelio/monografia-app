@@ -58,3 +58,9 @@ export function listarVersoes(versionado) {
     .map((v, indice) => ({ indice, quem: v.quem, quando: v.quando }))
     .reverse();
 }
+
+export function proximaADescartar(versionado) {
+  if (versionado.versoes.length < MAX_VERSOES) return null;
+  const antiga = versionado.versoes[0];
+  return { estado: antiga.estado, quando: antiga.quando };
+}
