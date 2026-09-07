@@ -14,7 +14,7 @@
     "teste:dominio": "node testes/dominio.test.mjs",
     "tdd": "node testes/tdd.mjs",
     "tdd:relatorio": "node testes/tdd.mjs --silencioso",
-    "tdd:fechar-fase": "node testes/tdd.mjs --silencioso --exigir-verde --ate-fase=3",
+    "tdd:fechar-fase": "node testes/tdd.mjs --silencioso --exigir-verde --ate-fase=4",
     "cobertura": "node testes/cobertura.mjs",
     "checagem": "powershell -ExecutionPolicy Bypass -File scripts\\checagem.ps1"
   },

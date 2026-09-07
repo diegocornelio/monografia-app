@@ -26,12 +26,12 @@ npm run tdd             # especificacao executavel das 96 features
 npm run cobertura       # prova que nenhuma feature ficou sem teste
 ```
 
-Estado hoje: Fases 1 a 3 fechadas por `npm run tdd:fechar-fase`, com 172 casos
-verdes, 0 vermelhos e 0 pendentes nesse escopo. No relatorio global, Fase 4 e
-Fase 5 seguem pendentes de implementacao. Cobertura do catalogo: 99 de 99
-features com teste em algum nivel. A arquitetura e front estatico do inicio ao
-fim, com Supabase consultado do navegador a partir da Fase 5 e nenhum servidor
-de aplicacao proprio. A politica de estados e os portoes por fase estao em
+Estado hoje: Fases 1 a 4 fechadas por `npm run tdd:fechar-fase`, com 202 casos
+verdes, 0 vermelhos e 0 pendentes nesse escopo. A parte pura da Fase 5 tambem
+esta implementada; restam 3 testes de integracao contra Supabase real. Cobertura
+do catalogo: 99 de 99 features com teste em algum nivel. A arquitetura e front
+estatico do inicio ao fim, com Supabase consultado do navegador a partir da Fase
+5 e nenhum servidor de aplicacao proprio. A politica de estados e os portoes por fase estao em
 `docs/PLANO_DE_TESTES.md`.
 
 ## Arranque do repositório
