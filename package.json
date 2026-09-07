@@ -5,11 +5,20 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "node --check src/main.js",
+    "typecheck": "node --check src/main.js",
+    "teste:unit": "npm run teste:dominio",
+    "teste:guardrails": "node -e \"import('node:fs').then(fs=>{if(!fs.existsSync('guardrails.md')) process.exit(1)})\"",
     "teste:dominio": "node testes/dominio.test.mjs",
     "tdd": "node testes/tdd.mjs",
     "tdd:relatorio": "node testes/tdd.mjs --silencioso",
     "tdd:fechar-fase": "node testes/tdd.mjs --silencioso --exigir-verde",
     "cobertura": "node testes/cobertura.mjs",
     "checagem": "./scripts/checagem.sh"
+  },
+  "devDependencies": {
+    "vite": "^6.4.3"
   }
 }
