@@ -16,7 +16,7 @@
     "tdd:relatorio": "node testes/tdd.mjs --silencioso",
     "tdd:fechar-fase": "node testes/tdd.mjs --silencioso --exigir-verde",
     "cobertura": "node testes/cobertura.mjs",
-    "checagem": "./scripts/checagem.sh"
+    "checagem": "powershell -ExecutionPolicy Bypass -File scripts\\checagem.ps1"
   },
   "devDependencies": {
     "vite": "^6.4.3"

@@ -50,7 +50,10 @@ h2 {
   font-size: 1rem;
 }
 
-input {
+input,
+select,
+textarea,
+button {
   background: #fffdf9;
   border: 1px solid #d7c7b4;
   border-radius: 6px;
@@ -58,7 +61,29 @@ input {
   font: inherit;
   max-width: 100%;
   padding: 12px 14px;
+}
+
+input,
+select,
+textarea {
   width: 320px;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+button {
+  background: #2f5f6a;
+  border-color: #2f5f6a;
+  color: #fffdf9;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+button:hover {
+  background: #244d56;
 }
 
 .grid {
@@ -87,8 +112,92 @@ input {
   padding-left: 12px;
 }
 
+.lista,
+.stack,
+.blocos {
+  display: grid;
+  gap: 12px;
+}
+
+.stack,
+.section-form {
+  margin-bottom: 18px;
+}
+
+.stack input,
+.stack select,
+.stack textarea,
+.stack button,
+.section-form input,
+.section-form textarea,
+.section-form button {
+  width: 100%;
+}
+
+.inline-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.inline-form input {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
+
+.citacao {
+  background: #f3f7f8;
+  border: 1px dashed #7da1aa;
+  border-radius: 8px;
+  cursor: grab;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.citacao:active {
+  cursor: grabbing;
+}
+
+.bloco {
+  border: 1px solid #d7c7b4;
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.bloco textarea {
+  min-height: 150px;
+  width: 100%;
+}
+
+.bloco textarea:focus {
+  border-color: #2f5f6a;
+  outline: 3px solid #cfe2e6;
+}
+
+.bloco-topo {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.icon-button {
+  align-items: center;
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  padding: 0;
+  width: 36px;
+}
+
 .ficha span,
-.ficha small {
+.ficha small,
+.citacao span,
+.muted {
   color: #6f655b;
 }
 
