@@ -12,6 +12,18 @@ import { validarLimite } from './domain/limites.mjs';
 import { gerarListaFiguras, gerarListaTabelas, gerarSumario } from './domain/monografia/listas.mjs';
 import { contarPalavras, progresso } from './domain/monografia/metas.mjs';
 import { criarRastro } from './domain/monografia/rastro.mjs';
+import {
+  adicionarCitacao,
+  adicionarFicha,
+  adicionarFigura,
+  adicionarSecao,
+  adicionarTabela,
+  atualizarTextoSecao,
+  exportarProjeto,
+  importarProjeto,
+  inserirCitacaoNaSecao,
+  moverSecao,
+} from './domain/projeto.mjs';
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
 import { criarTag, linhaDeTags } from './domain/tag.mjs';
 import { montar as montarGrafico } from './ui/graficos/GraficoNarrado.mjs';
@@ -38,8 +50,8 @@ const estadoInicial = {
   tags: [criarTag({ texto: 'metodologia', corTexto: '#2B2B2B', corFundo: '#EFE6DA' })],
   monografia: {
     blocos: [
-      { id: 'b1', numero: '1', titulo: 'Introducao', tipo: 'textual', pagina: 11, texto: 'A Camara de Comercializacao de Energia Eletrica (CCEE) publica dados.' },
-      { id: 'b2', numero: '1.1', titulo: 'Problema', tipo: 'textual', pagina: 13, texto: 'O ambiente ACL cresce.' },
+      { id: 'b1', nivel: 1, numero: '1', titulo: 'Introducao', tipo: 'textual', pagina: 11, texto: 'A Camara de Comercializacao de Energia Eletrica (CCEE) publica dados.' },
+      { id: 'b2', nivel: 2, numero: '1.1', titulo: 'Problema', tipo: 'textual', pagina: 13, texto: 'O ambiente ACL cresce.' },
     ],
     figuras: [{ id: 'fig1', blocoId: 'b1', legenda: 'Fluxo de pesquisa', fonte: 'autor', altText: 'Fluxo de pesquisa', pagina: 12 }],
     tabelas: [{ id: 'tab1', blocoId: 'b2', titulo: 'Casos analisados', fonte: 'autor', pagina: 14 }],
@@ -50,7 +62,7 @@ const estadoInicial = {
   },
 };
 
-const estado = carregarEstado();
+let estado = carregarEstado();
 
 function desenhar(filtro = filtroAtual) {
   filtroAtual = filtro;
@@ -95,7 +107,15 @@ function desenhar(filtro = filtroAtual) {
           <p class="eyebrow">Fichario solo</p>
           <h1>Fichamento editavel</h1>
         </div>
-        <input id="busca" value="${escapeAttr(filtro)}" placeholder="Buscar assunto ou obra" />
+        <div class="toolbar-actions">
+          <input id="busca" value="${escapeAttr(filtro)}" placeholder="Buscar assunto ou obra" />
+          <button type="button" id="exportar">Baixar JSON</button>
+          <label class="upload-button">
+            Importar JSON
+            <input id="importar" type="file" accept="application/json" />
+          </label>
+          <button type="button" id="recomecar">Recomecar</button>
+        </div>
       </section>
 
       <section class="grid">
@@ -207,6 +227,9 @@ function conectarEventos() {
   document.querySelector('#form-bloco').addEventListener('submit', criarNovoBloco);
   document.querySelector('#form-figura').addEventListener('submit', criarNovaFigura);
   document.querySelector('#form-tabela').addEventListener('submit', criarNovaTabela);
+  document.querySelector('#exportar').addEventListener('click', baixarProjeto);
+  document.querySelector('#importar').addEventListener('change', importarArquivo);
+  document.querySelector('#recomecar').addEventListener('click', recomecarProjeto);
 
   document.querySelectorAll('[data-subir]').forEach((botao) => botao.addEventListener('click', () => moverBloco(botao.dataset.subir, -1)));
   document.querySelectorAll('[data-descer]').forEach((botao) => botao.addEventListener('click', () => moverBloco(botao.dataset.descer, 1)));
@@ -223,24 +246,13 @@ function conectarEventos() {
 function criarNovaFicha(evento) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
-  estado.fichas.push({
-    id: uid('ficha'),
-    ...criarFicha({
-      projetoId: 'p1',
-      fonteId: estado.fonte.id,
-      tipo: dados.tipo,
-      assunto: dados.assunto,
-      ordemImpressao: estado.fichas.length + 1,
-    }),
-  });
-  persistir();
+  setEstado(adicionarFicha(estado, { tipo: dados.tipo, assunto: dados.assunto }));
 }
 
 function criarNovaCitacao(evento) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
-  estado.citacoes.push({ id: uid('cit'), ...criarCitacao({ fonteId: estado.fonte.id, texto: dados.texto, pagina: dados.pagina }) });
-  persistir();
+  setEstado(adicionarCitacao(estado, { texto: dados.texto, pagina: dados.pagina }));
 }
 
 function criarNovaTag(evento) {
@@ -253,78 +265,52 @@ function criarNovaTag(evento) {
 function criarNovoBloco(evento) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
-  estado.monografia.blocos.push({
-    id: uid('b'),
-    numero: String(estado.monografia.blocos.length + 1),
-    titulo: dados.titulo,
-    tipo: 'textual',
-    pagina: 10 + estado.monografia.blocos.length + 1,
-    texto: dados.texto || '',
-  });
-  renumerarBlocos();
-  persistir();
+  setEstado(adicionarSecao(estado, { titulo: dados.titulo, texto: dados.texto }));
 }
 
 function criarNovaFigura(evento) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
-  estado.monografia.figuras.push({
-    id: uid('fig'),
-    blocoId: dados.blocoId,
-    legenda: dados.legenda,
-    fonte: 'autor',
-    altText: dados.altText,
-    pagina: paginaDoBloco(dados.blocoId),
-  });
-  persistir();
+  setEstado(adicionarFigura(estado, { blocoId: dados.blocoId, legenda: dados.legenda, altText: dados.altText }));
 }
 
 function criarNovaTabela(evento) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
-  estado.monografia.tabelas.push({
-    id: uid('tab'),
-    blocoId: dados.blocoId,
-    titulo: dados.titulo,
-    fonte: 'autor',
-    pagina: paginaDoBloco(dados.blocoId),
-  });
-  persistir();
+  setEstado(adicionarTabela(estado, { blocoId: dados.blocoId, titulo: dados.titulo }));
 }
 
 function moverBloco(id, direcao) {
-  const origem = estado.monografia.blocos.findIndex((bloco) => bloco.id === id);
-  const destino = origem + direcao;
-  if (origem < 0 || destino < 0 || destino >= estado.monografia.blocos.length) return;
-  const [bloco] = estado.monografia.blocos.splice(origem, 1);
-  estado.monografia.blocos.splice(destino, 0, bloco);
-  renumerarBlocos();
-  persistir();
+  setEstado(moverSecao(estado, { id, direcao }));
 }
 
 function atualizarTextoBloco(id, texto) {
-  const bloco = estado.monografia.blocos.find((item) => item.id === id);
-  if (!bloco) return;
-  bloco.texto = texto;
-  persistir();
+  setEstado(atualizarTextoSecao(estado, { id, texto }));
 }
 
 function soltarCitacao(evento, blocoId) {
   evento.preventDefault();
   const citacaoId = evento.dataTransfer.getData('text/plain');
-  const citacao = estado.citacoes.find((item) => item.id === citacaoId);
-  const bloco = estado.monografia.blocos.find((item) => item.id === blocoId);
-  if (!citacao || !bloco) return;
+  setEstado(inserirCitacaoNaSecao(estado, { citacaoId, blocoId }));
+}
 
-  const trecho = apresentar(citacao, { linhas: 1 });
-  bloco.texto = `${bloco.texto.trim()}\n\n${typeof trecho === 'string' ? trecho : trecho.texto}`.trim();
-  if (!estado.monografia.citacoes.some((item) => item.id === citacao.id)) {
-    estado.monografia.citacoes.push({ id: citacao.id, fonteId: citacao.fonteId, linhas: 1, pagina: citacao.pagina });
-  }
-  if (!estado.monografia.referencias.some((item) => item.fonteId === citacao.fonteId)) {
-    estado.monografia.referencias.push({ fonteId: citacao.fonteId });
-  }
-  persistir();
+function baixarProjeto() {
+  const arquivo = new Blob([exportarProjeto(estado)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(arquivo);
+  link.download = 'fichario-projeto.json';
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function importarArquivo(evento) {
+  const arquivo = evento.target.files?.[0];
+  if (!arquivo) return;
+  setEstado(importarProjeto(await arquivo.text()));
+}
+
+function recomecarProjeto() {
+  setEstado(structuredClone(estadoInicial));
 }
 
 function cardFicha(ficha) {
@@ -363,16 +349,6 @@ function selectBloco(nome) {
   `;
 }
 
-function paginaDoBloco(id) {
-  return estado.monografia.blocos.find((bloco) => bloco.id === id)?.pagina ?? 1;
-}
-
-function renumerarBlocos() {
-  estado.monografia.blocos.forEach((bloco, indice) => {
-    bloco.numero = String(indice + 1);
-  });
-}
-
 function carregarEstado() {
   const salvo = localStorage.getItem(CHAVE_ESTADO);
   if (!salvo) return structuredClone(estadoInicial);
@@ -383,6 +359,11 @@ function normalizarEstado(valor) {
   valor.fichas = valor.fichas.map((ficha, indice) => ({ id: ficha.id ?? uid('ficha'), ordemImpressao: indice + 1, ...ficha }));
   valor.citacoes = valor.citacoes.map((citacao) => ({ id: citacao.id ?? uid('cit'), ...citacao }));
   return valor;
+}
+
+function setEstado(proximoEstado) {
+  estado = proximoEstado;
+  persistir();
 }
 
 function persistir() {

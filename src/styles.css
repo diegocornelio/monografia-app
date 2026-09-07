@@ -86,6 +86,33 @@ button:hover {
   background: #244d56;
 }
 
+.toolbar-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.toolbar-actions input {
+  width: 260px;
+}
+
+.upload-button {
+  background: #fffdf9;
+  border: 1px solid #2f5f6a;
+  border-radius: 6px;
+  color: #2f5f6a;
+  cursor: pointer;
+  display: inline-flex;
+  font-weight: 700;
+  padding: 12px 14px;
+}
+
+.upload-button input {
+  display: none;
+}
+
 .grid {
   display: grid;
   gap: 16px;
@@ -226,6 +253,18 @@ button:hover {
   }
 
   input {
+    width: 100%;
+  }
+
+  .toolbar-actions {
+    display: grid;
+    justify-content: stretch;
+  }
+
+  .toolbar-actions input,
+  .toolbar-actions button,
+  .upload-button {
+    justify-content: center;
     width: 100%;
   }
 }

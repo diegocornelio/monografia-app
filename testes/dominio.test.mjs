@@ -17,6 +17,17 @@ import {
   resumoBacklog,
   listarParaRolagem,
 } from '../src/domain/backlog.mjs';
+import {
+  adicionarCitacao,
+  adicionarFicha,
+  adicionarFigura,
+  adicionarSecao,
+  adicionarTabela,
+  inserirCitacaoNaSecao,
+  moverSecao,
+  exportarProjeto,
+  importarProjeto,
+} from '../src/domain/projeto.mjs';
 import { renumerar, mover } from '../src/domain/sumario.mjs';
 
 let passou = 0;
@@ -236,6 +247,68 @@ teste('nenhum_bloco_desaparece_em_mil_movimentos_aleatorios', () => {
     assert.equal(numerados.filter((b) => b.numero !== null).length, 12);
   }
   assert.deepEqual(new Set(blocos.map((b) => b.id)), idsIniciais);
+});
+
+// ---------- projeto editável ----------
+
+const projetoBase = () => ({
+  fonte: { id: 'fonte1' },
+  fichas: [],
+  citacoes: [],
+  tags: [],
+  monografia: {
+    blocos: [
+      { id: 'b1', numero: '1', titulo: 'Introducao', tipo: 'textual', pagina: 11, texto: 'Texto A' },
+      { id: 'b2', numero: '2', titulo: 'Metodo', tipo: 'textual', pagina: 12, texto: 'Texto B' },
+    ],
+    figuras: [],
+    tabelas: [],
+    citacoes: [],
+    referencias: [],
+  },
+});
+
+teste('adicionar_ficha_cria_ordem_de_impressao_sem_mutar_o_projeto', () => {
+  const projeto = projetoBase();
+  const atualizado = adicionarFicha(projeto, { tipo: 'texto', assunto: 'Energia livre' });
+  assert.equal(atualizado.fichas[0].ordemImpressao, 1);
+  assert.equal(atualizado.fichas[0].assunto, 'Energia livre');
+  assert.equal(projeto.fichas.length, 0);
+});
+
+teste('adicionar_secao_renumera_sumario_e_preserva_os_blocos_existentes', () => {
+  const atualizado = adicionarSecao(projetoBase(), { titulo: 'Resultados', texto: 'Analise' });
+  assert.deepEqual(atualizado.monografia.blocos.map((b) => b.numero), ['1', '2', '3']);
+  assert.equal(atualizado.monografia.blocos.at(-1).titulo, 'Resultados');
+});
+
+teste('mover_secao_desloca_bloco_e_renumera', () => {
+  const atualizado = moverSecao(projetoBase(), { id: 'b2', direcao: -1 });
+  assert.deepEqual(atualizado.monografia.blocos.map((b) => b.id), ['b2', 'b1']);
+  assert.deepEqual(atualizado.monografia.blocos.map((b) => b.numero), ['1', '2']);
+});
+
+teste('inserir_citacao_na_secao_coloca_texto_e_referencia', () => {
+  const comCitacao = adicionarCitacao(projetoBase(), { texto: 'Crescimento do ACL', pagina: 44 });
+  const atualizado = inserirCitacaoNaSecao(comCitacao, { citacaoId: comCitacao.citacoes[0].id, blocoId: 'b1' });
+  assert.match(atualizado.monografia.blocos[0].texto, /Crescimento do ACL/);
+  assert.equal(atualizado.monografia.citacoes[0].fonteId, 'fonte1');
+  assert.equal(atualizado.monografia.referencias[0].fonteId, 'fonte1');
+});
+
+teste('figura_e_tabela_entram_vinculadas_a_secao', () => {
+  let projeto = adicionarFigura(projetoBase(), { blocoId: 'b1', legenda: 'Mapa do fluxo', altText: 'Mapa' });
+  projeto = adicionarTabela(projeto, { blocoId: 'b2', titulo: 'Casos' });
+  assert.equal(projeto.monografia.figuras[0].blocoId, 'b1');
+  assert.equal(projeto.monografia.tabelas[0].blocoId, 'b2');
+});
+
+teste('projeto_exportado_importa_com_os_mesmos_dados_editaveis', () => {
+  const projeto = adicionarFicha(projetoBase(), { tipo: 'texto', assunto: 'Contratos' });
+  const pacote = exportarProjeto(projeto);
+  const restaurado = importarProjeto(pacote);
+  assert.equal(restaurado.fichas[0].assunto, 'Contratos');
+  assert.equal(restaurado.monografia.blocos[0].titulo, 'Introducao');
 });
 
 console.log(`\n${passou} testes passaram, ${falhas.length} falharam.`);
