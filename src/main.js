@@ -18,6 +18,7 @@ import {
   adicionarFigura,
   adicionarSecao,
   adicionarTabela,
+  atualizarCitacao,
   atualizarFicha,
   atualizarTextoSecao,
   exportarProjeto,
@@ -25,7 +26,9 @@ import {
   inserirCitacaoNaSecao,
   moverFicha,
   moverSecao,
+  removerCitacao,
   removerFicha,
+  removerSecao,
 } from './domain/projeto.mjs';
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
 import { criarTag, linhaDeTags } from './domain/tag.mjs';
@@ -239,8 +242,16 @@ function conectarEventos() {
   document.querySelectorAll('[data-ficha-subir]').forEach((botao) => botao.addEventListener('click', () => moverFichaNaFila(botao.dataset.fichaSubir, -1)));
   document.querySelectorAll('[data-ficha-descer]').forEach((botao) => botao.addEventListener('click', () => moverFichaNaFila(botao.dataset.fichaDescer, 1)));
   document.querySelectorAll('[data-ficha-remover]').forEach((botao) => botao.addEventListener('click', () => apagarFicha(botao.dataset.fichaRemover)));
+  document.querySelectorAll('[data-citacao-remover]').forEach((botao) => botao.addEventListener('click', () => apagarCitacao(botao.dataset.citacaoRemover)));
+  document.querySelectorAll('[data-bloco-remover]').forEach((botao) => botao.addEventListener('click', () => apagarBloco(botao.dataset.blocoRemover)));
   document.querySelectorAll('[data-assunto-ficha]').forEach((campo) => {
     campo.addEventListener('change', () => editarFicha(campo.dataset.assuntoFicha, campo.value));
+  });
+  document.querySelectorAll('[data-texto-citacao]').forEach((campo) => {
+    campo.addEventListener('change', () => editarCitacao(campo.dataset.textoCitacao));
+  });
+  document.querySelectorAll('[data-pagina-citacao]').forEach((campo) => {
+    campo.addEventListener('change', () => editarCitacao(campo.dataset.paginaCitacao));
   });
   document.querySelectorAll('[data-texto-bloco]').forEach((campo) => {
     campo.addEventListener('change', () => atualizarTextoBloco(campo.dataset.textoBloco, campo.value));
@@ -305,6 +316,20 @@ function apagarFicha(id) {
   setEstado(removerFicha(estado, { id }));
 }
 
+function editarCitacao(id) {
+  const texto = document.querySelector(`[data-texto-citacao="${cssEscape(id)}"]`)?.value;
+  const pagina = document.querySelector(`[data-pagina-citacao="${cssEscape(id)}"]`)?.value;
+  setEstado(atualizarCitacao(estado, { id, texto, pagina }));
+}
+
+function apagarCitacao(id) {
+  setEstado(removerCitacao(estado, { id }));
+}
+
+function apagarBloco(id) {
+  setEstado(removerSecao(estado, { id }));
+}
+
 function atualizarTextoBloco(id, texto) {
   setEstado(atualizarTextoSecao(estado, { id, texto }));
 }
@@ -351,7 +376,14 @@ function cardFicha(ficha) {
 }
 
 function cardCitacao(citacao) {
-  return `<div class="citacao" draggable="true" data-citacao="${escapeAttr(citacao.id)}"><strong>p. ${escapeHtml(citacao.pagina)}</strong><span>${escapeHtml(apresentar(citacao, { linhas: 1 }))}</span></div>`;
+  return `
+    <div class="citacao" draggable="true" data-citacao="${escapeAttr(citacao.id)}">
+      <textarea data-texto-citacao="${escapeAttr(citacao.id)}" aria-label="Texto da citacao">${escapeHtml(citacao.textoLimpo)}</textarea>
+      <input data-pagina-citacao="${escapeAttr(citacao.id)}" value="${escapeAttr(citacao.pagina)}" aria-label="Pagina da citacao" />
+      <small>${escapeHtml(apresentar(citacao, { linhas: 1 }))}</small>
+      <button type="button" data-citacao-remover="${escapeAttr(citacao.id)}">Remover citacao</button>
+    </div>
+  `;
 }
 
 function cardBloco(bloco, indice) {
@@ -362,6 +394,7 @@ function cardBloco(bloco, indice) {
         <span>
           <button type="button" class="icon-button" data-subir="${escapeAttr(bloco.id)}" title="Subir secao">↑</button>
           <button type="button" class="icon-button" data-descer="${escapeAttr(bloco.id)}" title="Descer secao">↓</button>
+          <button type="button" data-bloco-remover="${escapeAttr(bloco.id)}">Remover</button>
         </span>
       </div>
       <textarea data-texto-bloco="${escapeAttr(bloco.id)}" aria-label="Texto da secao ${indice + 1}">${escapeHtml(bloco.texto)}</textarea>
@@ -417,6 +450,10 @@ function escapeHtml(valor) {
 
 function escapeAttr(valor) {
   return escapeHtml(valor).replaceAll("'", '&#39;');
+}
+
+function cssEscape(valor) {
+  return String(valor).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 }
 
 desenhar();

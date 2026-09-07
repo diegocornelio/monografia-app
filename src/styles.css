@@ -187,6 +187,12 @@ button:hover {
   cursor: grabbing;
 }
 
+.citacao input,
+.citacao textarea,
+.citacao button {
+  width: 100%;
+}
+
 .bloco {
   border: 1px solid #d7c7b4;
   border-radius: 8px;

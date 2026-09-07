@@ -23,11 +23,14 @@ import {
   adicionarFigura,
   adicionarSecao,
   adicionarTabela,
+  atualizarCitacao,
   atualizarFicha,
   inserirCitacaoNaSecao,
   moverFicha,
   moverSecao,
+  removerCitacao,
   removerFicha,
+  removerSecao,
   exportarProjeto,
   importarProjeto,
 } from '../src/domain/projeto.mjs';
@@ -333,6 +336,31 @@ teste('mover_ficha_altera_a_fila_de_impressao', () => {
   projeto = adicionarFicha(projeto, { tipo: 'texto', assunto: 'B' });
   projeto = moverFicha(projeto, { id: projeto.fichas[1].id, direcao: -1 });
   assert.deepEqual(projeto.fichas.map((f) => [f.assunto, f.ordemImpressao]), [['B', 1], ['A', 2]]);
+});
+
+teste('atualizar_citacao_corrige_texto_e_pagina', () => {
+  let projeto = adicionarCitacao(projetoBase(), { texto: 'Antigo', pagina: 10 });
+  projeto = atualizarCitacao(projeto, { id: projeto.citacoes[0].id, texto: 'Novo', pagina: 11 });
+  assert.equal(projeto.citacoes[0].textoLimpo, 'Novo');
+  assert.equal(projeto.citacoes[0].pagina, 11);
+});
+
+teste('remover_citacao_limpa_a_monografia_quando_ela_estava_inserida', () => {
+  let projeto = adicionarCitacao(projetoBase(), { texto: 'Trecho', pagina: 10 });
+  projeto = inserirCitacaoNaSecao(projeto, { citacaoId: projeto.citacoes[0].id, blocoId: 'b1' });
+  projeto = removerCitacao(projeto, { id: projeto.citacoes[0].id });
+  assert.equal(projeto.citacoes.length, 0);
+  assert.equal(projeto.monografia.citacoes.length, 0);
+});
+
+teste('remover_secao_retira_bloco_e_seus_itens_vinculados', () => {
+  let projeto = adicionarFigura(projetoBase(), { blocoId: 'b1', legenda: 'Mapa', altText: 'Mapa' });
+  projeto = adicionarTabela(projeto, { blocoId: 'b1', titulo: 'Dados' });
+  projeto = removerSecao(projeto, { id: 'b1' });
+  assert.deepEqual(projeto.monografia.blocos.map((b) => b.id), ['b2']);
+  assert.equal(projeto.monografia.figuras.length, 0);
+  assert.equal(projeto.monografia.tabelas.length, 0);
+  assert.equal(projeto.monografia.blocos[0].numero, '1');
 });
 
 console.log(`\n${passou} testes passaram, ${falhas.length} falharam.`);

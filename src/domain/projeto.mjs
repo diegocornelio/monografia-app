@@ -51,6 +51,32 @@ export function adicionarCitacao(projeto, { texto, pagina, tipo = 'direta' }) {
   return { ...projeto, citacoes: [...projeto.citacoes, citacao] };
 }
 
+export function atualizarCitacao(projeto, { id, texto, pagina, tipo }) {
+  const citacoes = projeto.citacoes.map((citacao) =>
+    citacao.id === id
+      ? {
+          ...citacao,
+          textoLimpo: texto === undefined ? citacao.textoLimpo : limparAspas(texto),
+          pagina: pagina ?? citacao.pagina,
+          tipo: tipo ?? citacao.tipo,
+        }
+      : citacao,
+  );
+  return { ...projeto, citacoes };
+}
+
+export function removerCitacao(projeto, { id }) {
+  const citacoes = projeto.citacoes.filter((citacao) => citacao.id !== id);
+  return {
+    ...projeto,
+    citacoes,
+    monografia: {
+      ...projeto.monografia,
+      citacoes: projeto.monografia.citacoes.filter((citacao) => citacao.id !== id),
+    },
+  };
+}
+
 export function adicionarSecao(projeto, { titulo, texto = '', nivel = 1 }) {
   const blocos = renumerar([
     ...normalizarBlocos(projeto.monografia.blocos),
@@ -65,6 +91,13 @@ export function adicionarSecao(projeto, { titulo, texto = '', nivel = 1 }) {
     },
   ]);
   return comMonografia(projeto, { blocos });
+}
+
+export function removerSecao(projeto, { id }) {
+  const blocos = renumerar(normalizarBlocos(projeto.monografia.blocos).filter((bloco) => bloco.id !== id));
+  const figuras = projeto.monografia.figuras.filter((figura) => figura.blocoId !== id);
+  const tabelas = projeto.monografia.tabelas.filter((tabela) => tabela.blocoId !== id);
+  return comMonografia(projeto, { blocos, figuras, tabelas });
 }
 
 export function moverSecao(projeto, { id, direcao }) {
@@ -159,4 +192,8 @@ function renumerarFichas(fichas) {
 
 function uid(prefixo) {
   return `${prefixo}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function limparAspas(texto) {
+  return String(texto ?? '').trim().replace(/^["'“”‘’]+|["'“”‘’]+$/g, '');
 }
