@@ -263,6 +263,23 @@ button:hover {
   padding: 6px 10px;
 }
 
+.tag-editavel {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+
+.tag-editavel input {
+  border-radius: 999px;
+  font-weight: 700;
+  padding: 6px 10px;
+  width: 150px;
+}
+
+.tag-editavel button {
+  padding: 6px 10px;
+}
+
 @media (max-width: 720px) {
   .app-shell {
     padding: 20px;

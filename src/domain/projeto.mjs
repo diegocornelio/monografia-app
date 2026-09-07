@@ -1,6 +1,7 @@
 import { apresentar, criarCitacao } from './citacao.mjs';
 import { criarFicha } from './ficha.mjs';
 import { mover, renumerar } from './sumario.mjs';
+import { criarTag } from './tag.mjs';
 
 export function adicionarFicha(projeto, { tipo, assunto }) {
   const ficha = {
@@ -41,6 +42,29 @@ export function moverFicha(projeto, { id, direcao }) {
   const [ficha] = fichas.splice(de, 1);
   fichas.splice(para, 0, ficha);
   return { ...projeto, fichas: renumerarFichas(fichas) };
+}
+
+export function adicionarTag(projeto, { texto, corTexto = '#2B2B2B', corFundo = '#E9F0DD' }) {
+  const tag = { id: uid('tag'), ...criarTag({ texto, corTexto, corFundo }) };
+  return { ...projeto, tags: [...projeto.tags, tag] };
+}
+
+export function atualizarTag(projeto, { id, texto, corTexto, corFundo }) {
+  const tags = projeto.tags.map((tag) =>
+    tag.id === id
+      ? {
+          ...tag,
+          texto: texto ?? tag.texto,
+          corTexto: corTexto ?? tag.corTexto,
+          corFundo: corFundo ?? tag.corFundo,
+        }
+      : tag,
+  );
+  return { ...projeto, tags };
+}
+
+export function removerTag(projeto, { id }) {
+  return { ...projeto, tags: projeto.tags.filter((tag) => tag.id !== id) };
 }
 
 export function adicionarCitacao(projeto, { texto, pagina, tipo = 'direta' }) {

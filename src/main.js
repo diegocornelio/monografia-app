@@ -18,9 +18,11 @@ import {
   adicionarFigura,
   adicionarSecao,
   adicionarTabela,
+  adicionarTag,
   atualizarCitacao,
   atualizarFicha,
   atualizarFigura,
+  atualizarTag,
   atualizarTabela,
   atualizarTextoSecao,
   exportarProjeto,
@@ -32,6 +34,7 @@ import {
   removerFicha,
   removerFigura,
   removerSecao,
+  removerTag,
   removerTabela,
 } from './domain/projeto.mjs';
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
@@ -250,6 +253,7 @@ function conectarEventos() {
   document.querySelectorAll('[data-bloco-remover]').forEach((botao) => botao.addEventListener('click', () => apagarBloco(botao.dataset.blocoRemover)));
   document.querySelectorAll('[data-figura-remover]').forEach((botao) => botao.addEventListener('click', () => apagarFigura(botao.dataset.figuraRemover)));
   document.querySelectorAll('[data-tabela-remover]').forEach((botao) => botao.addEventListener('click', () => apagarTabela(botao.dataset.tabelaRemover)));
+  document.querySelectorAll('[data-tag-remover]').forEach((botao) => botao.addEventListener('click', () => apagarTag(botao.dataset.tagRemover)));
   document.querySelectorAll('[data-assunto-ficha]').forEach((campo) => {
     campo.addEventListener('change', () => editarFicha(campo.dataset.assuntoFicha, campo.value));
   });
@@ -265,6 +269,9 @@ function conectarEventos() {
   });
   document.querySelectorAll('[data-titulo-tabela]').forEach((campo) => {
     campo.addEventListener('change', () => editarTabela(campo.dataset.tituloTabela));
+  });
+  document.querySelectorAll('[data-texto-tag]').forEach((campo) => {
+    campo.addEventListener('change', () => editarTag(campo.dataset.textoTag, campo.value));
   });
   document.querySelectorAll('[data-texto-bloco]').forEach((campo) => {
     campo.addEventListener('change', () => atualizarTextoBloco(campo.dataset.textoBloco, campo.value));
@@ -291,8 +298,7 @@ function criarNovaCitacao(evento) {
 function criarNovaTag(evento) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
-  estado.tags.push(criarTag({ texto: dados.texto, corTexto: '#2B2B2B', corFundo: '#E9F0DD' }));
-  persistir();
+  setEstado(adicionarTag(estado, { texto: dados.texto }));
 }
 
 function criarNovoBloco(evento) {
@@ -360,6 +366,14 @@ function editarTabela(id) {
 
 function apagarTabela(id) {
   setEstado(removerTabela(estado, { id }));
+}
+
+function editarTag(id, texto) {
+  setEstado(atualizarTag(estado, { id, texto }));
+}
+
+function apagarTag(id) {
+  setEstado(removerTag(estado, { id }));
 }
 
 function atualizarTextoBloco(id, texto) {
@@ -456,7 +470,12 @@ function cardTabela(tabela) {
 }
 
 function cardTag(tag) {
-  return `<span class="tag" style="color:${tag.corTexto};background:${tag.corFundo}">${escapeHtml(tag.texto)}</span>`;
+  return `
+    <span class="tag-editavel">
+      <input data-texto-tag="${escapeAttr(tag.id)}" value="${escapeAttr(tag.texto)}" aria-label="Texto da tag" style="color:${tag.corTexto};background:${tag.corFundo}" />
+      <button type="button" data-tag-remover="${escapeAttr(tag.id)}">Remover</button>
+    </span>
+  `;
 }
 
 function selectBloco(nome) {

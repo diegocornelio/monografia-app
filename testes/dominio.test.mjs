@@ -23,9 +23,11 @@ import {
   adicionarFigura,
   adicionarSecao,
   adicionarTabela,
+  adicionarTag,
   atualizarCitacao,
   atualizarFicha,
   atualizarFigura,
+  atualizarTag,
   atualizarTabela,
   inserirCitacaoNaSecao,
   moverFicha,
@@ -34,6 +36,7 @@ import {
   removerFicha,
   removerFigura,
   removerSecao,
+  removerTag,
   removerTabela,
   exportarProjeto,
   importarProjeto,
@@ -392,6 +395,27 @@ teste('remover_tabela_nao_remove_a_secao', () => {
   projeto = removerTabela(projeto, { id: projeto.monografia.tabelas[0].id });
   assert.equal(projeto.monografia.tabelas.length, 0);
   assert.equal(projeto.monografia.blocos.length, 2);
+});
+
+teste('adicionar_tag_cria_item_editavel_sem_mutar_o_projeto', () => {
+  const projeto = projetoBase();
+  const atualizado = adicionarTag(projeto, { texto: 'metodo' });
+  assert.equal(atualizado.tags[0].texto, 'metodo');
+  assert.equal(projeto.tags.length, 0);
+});
+
+teste('atualizar_tag_corrige_texto_e_preserva_cores', () => {
+  let projeto = adicionarTag(projetoBase(), { texto: 'antigo' });
+  projeto = atualizarTag(projeto, { id: projeto.tags[0].id, texto: 'novo' });
+  assert.equal(projeto.tags[0].texto, 'novo');
+  assert.equal(projeto.tags[0].corTexto, '#2B2B2B');
+});
+
+teste('remover_tag_retira_so_a_tag_escolhida', () => {
+  let projeto = adicionarTag(projetoBase(), { texto: 'a' });
+  projeto = adicionarTag(projeto, { texto: 'b' });
+  projeto = removerTag(projeto, { id: projeto.tags[0].id });
+  assert.deepEqual(projeto.tags.map((tag) => tag.texto), ['b']);
 });
 
 console.log(`\n${passou} testes passaram, ${falhas.length} falharam.`);
