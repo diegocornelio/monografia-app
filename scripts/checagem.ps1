@@ -1,13 +1,15 @@
 # checagem.ps1 — equivalente do checagem.sh para Windows.
-# Uso: powershell -ExecutionPolicy Bypass -File scripts\checagem.ps1
+# Uso: powershell -ExecutionPolicy Bypass -File scripts\checagem.ps1 [fase]
 $ErrorActionPreference = "Continue"
 Set-Location (Join-Path $PSScriptRoot "..")
 
+$fase = if ($args.Length -gt 0) { $args[0] } elseif (Test-Path ".fase-atual") { Get-Content ".fase-atual" -Raw } else { "3" }
+$fase = $fase.Trim()
 $relatorio = "RELATORIO.md"
 $falhas = 0
 $detalhe = @()
 
-"# Relatorio de checagem", "", "Gerado em $((Get-Date).ToUniversalTime().ToString('u'))", "",
+"# Relatorio de checagem", "", "Gerado em $((Get-Date).ToUniversalTime().ToString('u')) · fase $fase", "",
 "| Portao | Estado |", "|---|---|" | Set-Content $relatorio
 
 function Executar($nome, $comando) {
@@ -23,6 +25,7 @@ function Executar($nome, $comando) {
 
 Executar "testes de dominio" "node testes/dominio.test.mjs"
 Executar "especificacao sem vermelho" "node testes/tdd.mjs --silencioso"
+Executar "fases 1 a $fase completas" "node testes/tdd.mjs --silencioso --exigir-verde --ate-fase=$fase"
 Executar "cobertura do catalogo" "node testes/cobertura.mjs"
 if (Test-Path "node_modules") {
   Executar "lint" "npm run lint --silent"

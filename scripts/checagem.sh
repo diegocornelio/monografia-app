@@ -36,6 +36,7 @@ executar() { # nome, comando...
 
 executar "testes de dominio" node testes/dominio.test.mjs
 executar "especificacao sem vermelho" node testes/tdd.mjs --silencioso
+executar "fases 1 a $FASE completas" node testes/tdd.mjs --silencioso --exigir-verde --ate-fase="$FASE"
 executar "cobertura do catalogo" node testes/cobertura.mjs
 
 if [ -f package-lock.json ] && [ -d node_modules ]; then
