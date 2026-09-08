@@ -48,5 +48,5 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          accountId: 448ac53f4ad71e4650211b5b0bf0991a
           command: pages deploy dist --project-name=fichario --branch=main
