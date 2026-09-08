@@ -10,6 +10,7 @@ export const supabase = supabaseConfigurado
       auth: {
         autoRefreshToken: true,
         detectSessionInUrl: true,
+        flowType: 'pkce',
         persistSession: true,
       },
     })
@@ -20,6 +21,17 @@ export async function obterUsuarioAtual() {
   const { data, error } = await supabase.auth.getUser();
   if (error) throw error;
   return data.user ?? null;
+}
+
+export async function trocarCodigoPorSessao({ codigo }) {
+  return supabase.auth.exchangeCodeForSession(codigo);
+}
+
+export async function salvarSessaoDoRetorno({ accessToken, refreshToken }) {
+  return supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  });
 }
 
 export async function entrarComSenha({ email, senha }) {
@@ -33,8 +45,12 @@ export async function entrarComGoogle({ redirectTo }) {
   });
 }
 
-export async function cadastrarComSenha({ email, senha }) {
-  return supabase.auth.signUp({ email, password: senha });
+export async function cadastrarComSenha({ email, senha, redirectTo }) {
+  return supabase.auth.signUp({
+    email,
+    password: senha,
+    options: { emailRedirectTo: redirectTo },
+  });
 }
 
 export async function recuperarSenha({ email, redirectTo }) {

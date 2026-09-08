@@ -37,6 +37,24 @@ export function destinoNovaSenha({ origem, origemPublica = ORIGEM_PUBLICA_PADRAO
   return `${origemAuth({ origem, origemPublica })}/nova-senha`;
 }
 
+export function retornoAuthDaUrl({ rota, busca = '', hash = '' }) {
+  const parametrosBusca = new URLSearchParams(String(busca).replace(/^\?/, ''));
+  const parametrosHash = new URLSearchParams(String(hash).replace(/^#/, ''));
+  const erro = parametrosBusca.get('error_description') ?? parametrosHash.get('error_description') ?? parametrosBusca.get('error') ?? parametrosHash.get('error');
+  if (erro) return { tipo: 'erro', mensagem: erro, destino: '/entrar' };
+
+  const codigo = parametrosBusca.get('code');
+  if (rota === '/auth/callback' && codigo) return { tipo: 'codigo', codigo, destino: '/app' };
+
+  const accessToken = parametrosHash.get('access_token');
+  const refreshToken = parametrosHash.get('refresh_token');
+  if (accessToken && refreshToken) {
+    return { tipo: 'sessaoHash', accessToken, refreshToken, destino: rota === '/nova-senha' ? '/nova-senha' : '/app' };
+  }
+
+  return null;
+}
+
 export function protegerRota({ rota, usuario }) {
   if (ROTAS_PUBLICAS.includes(rota)) return { permitido: true, status: 200 };
   if (!usuario?.id) {

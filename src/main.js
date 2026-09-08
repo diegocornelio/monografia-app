@@ -7,7 +7,7 @@ import { avaliar } from './domain/acervo/dedup.mjs';
 import { lerBibTeX } from './domain/acervo/importadores.mjs';
 import { filtrar } from './domain/busca.mjs';
 import { mascarar } from './domain/agente/credencial.mjs';
-import { destinoCallbackAuth, destinoNovaSenha, protegerRota } from './domain/acesso/rotas.mjs';
+import { destinoCallbackAuth, destinoNovaSenha, protegerRota, retornoAuthDaUrl } from './domain/acesso/rotas.mjs';
 import { apresentar, criarCitacao } from './domain/citacao.mjs';
 import { criarFicha } from './domain/ficha.mjs';
 import { validarLimite } from './domain/limites.mjs';
@@ -49,8 +49,10 @@ import {
   obterUsuarioAtual,
   recuperarSenha,
   sair,
+  salvarSessaoDoRetorno,
   supabase,
   supabaseConfigurado,
+  trocarCodigoPorSessao,
 } from './infrastructure/supabase/cliente.mjs';
 import { montar as montarGrafico } from './ui/graficos/GraficoNarrado.mjs';
 
@@ -114,7 +116,7 @@ function desenhar(filtro = filtroAtual) {
     return;
   }
   if (rotaAtual() === '/auth/callback' && !auth.usuario) {
-    const erroRetorno = erroAuthDaUrl();
+    const erroRetorno = retornoAuthDaUrl({ rota: rotaAtual(), busca: window.location.search, hash: window.location.hash })?.mensagem;
     if (erroRetorno) {
       auth = { usuario: null, carregando: false, mensagem: erroRetorno };
       navegarPara('/entrar');
@@ -409,8 +411,8 @@ function desenharEntrada(modo = 'entrar') {
   `;
   document.querySelector('#form-auth').addEventListener('submit', (evento) => enviarAuth(evento, modo));
   document.querySelector('#entrar-google')?.addEventListener('click', entrarGoogle);
-  document.querySelector('#trocar-auth').addEventListener('click', () => navegarPara(cadastro || recuperacao ? '/entrar' : '/cadastrar'));
-  document.querySelector('#recuperar-auth')?.addEventListener('click', () => navegarPara('/recuperar-senha'));
+  document.querySelector('#trocar-auth').addEventListener('click', () => irPara(cadastro || recuperacao ? '/entrar' : '/cadastrar'));
+  document.querySelector('#recuperar-auth')?.addEventListener('click', () => irPara('/recuperar-senha'));
 }
 
 function desenharNovaSenha() {
@@ -577,7 +579,11 @@ async function enviarAuth(evento, modo) {
     return;
   }
   const acao = modo === 'cadastrar' ? cadastrarComSenha : entrarComSenha;
-  const { data, error } = await acao({ email: dados.email, senha: dados.senha });
+  const { data, error } = await acao({
+    email: dados.email,
+    senha: dados.senha,
+    redirectTo: destinoCallbackAuth({ origem: window.location.origin, origemPublica: import.meta.env.VITE_APP_URL }),
+  });
   if (error) {
     auth = { usuario: null, carregando: false, mensagem: error.message };
     desenhar();
@@ -629,10 +635,12 @@ async function iniciarAutenticacao() {
     desenhar();
     return;
   }
-  try {
-    auth = { usuario: await obterUsuarioAtual(), carregando: false, mensagem: '' };
-  } catch (error) {
-    auth = { usuario: null, carregando: false, mensagem: error.message };
+  if (!(await concluirRetornoAuth())) {
+    try {
+      auth = { usuario: await obterUsuarioAtual(), carregando: false, mensagem: '' };
+    } catch (error) {
+      auth = { usuario: null, carregando: false, mensagem: error.message };
+    }
   }
   supabase.auth.onAuthStateChange((evento, sessao) => {
     auth = { usuario: sessao?.user ?? null, carregando: false, mensagem: '' };
@@ -646,8 +654,36 @@ async function iniciarAutenticacao() {
   desenhar();
 }
 
+async function concluirRetornoAuth() {
+  const retorno = retornoAuthDaUrl({ rota: rotaAtual(), busca: window.location.search, hash: window.location.hash });
+  if (!retorno) return false;
+  if (retorno.tipo === 'erro') {
+    auth = { usuario: null, carregando: false, mensagem: retorno.mensagem };
+    navegarPara('/entrar');
+    return true;
+  }
+  try {
+    const { data, error } =
+      retorno.tipo === 'codigo'
+        ? await trocarCodigoPorSessao({ codigo: retorno.codigo })
+        : await salvarSessaoDoRetorno({ accessToken: retorno.accessToken, refreshToken: retorno.refreshToken });
+    if (error) throw error;
+    auth = { usuario: data.session?.user ?? data.user ?? null, carregando: false, mensagem: '' };
+    navegarPara(retorno.destino);
+  } catch (error) {
+    auth = { usuario: null, carregando: false, mensagem: error.message };
+    navegarPara('/entrar');
+  }
+  return true;
+}
+
 function navegarPara(rota) {
   window.history.pushState({}, '', rota);
+}
+
+function irPara(rota) {
+  navegarPara(rota);
+  desenhar();
 }
 
 function rotaAtual() {
@@ -658,12 +694,6 @@ function modoAuthDaRota() {
   if (rotaAtual() === '/cadastrar') return 'cadastrar';
   if (rotaAtual() === '/recuperar-senha') return 'recuperar';
   return 'entrar';
-}
-
-function erroAuthDaUrl() {
-  const busca = new URLSearchParams(window.location.search);
-  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  return busca.get('error_description') ?? hash.get('error_description') ?? busca.get('error') ?? hash.get('error');
 }
 
 function cardFicha(ficha) {

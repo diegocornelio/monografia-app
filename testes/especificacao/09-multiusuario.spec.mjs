@@ -75,6 +75,20 @@ suite('Isolamento da orquestracao de IA', { modulo: () => import('../../src/doma
     assert.equal(m.destinoNovaSenha({ origem: 'http://127.0.0.1:5173' }), 'https://fichario-9ob.pages.dev/nova-senha');
   });
 
+  caso('retorno do Google com codigo ou token finaliza na home do app', ['F066'], (m) => {
+    assert.deepEqual(m.retornoAuthDaUrl({ rota: '/auth/callback', busca: '?code=abc123', hash: '' }), {
+      tipo: 'codigo',
+      codigo: 'abc123',
+      destino: '/app',
+    });
+    assert.deepEqual(m.retornoAuthDaUrl({ rota: '/auth/callback', busca: '', hash: '#access_token=abc&refresh_token=def' }), {
+      tipo: 'sessaoHash',
+      accessToken: 'abc',
+      refreshToken: 'def',
+      destino: '/app',
+    });
+  });
+
   caso('nenhuma rota de agente e resolvida para orientador ou leitor', ['F067'], (m) => {
     for (const papel of ['orientador', 'leitor']) {
       for (const rota of rotasDeAgente) {
