@@ -23,8 +23,8 @@ export async function obterUsuarioAtual() {
   return data.user ?? null;
 }
 
-export async function trocarCodigoPorSessao({ codigo }) {
-  return supabase.auth.exchangeCodeForSession(codigo);
+export async function obterSessaoAtual() {
+  return supabase.auth.getSession();
 }
 
 export async function salvarSessaoDoRetorno({ accessToken, refreshToken }) {

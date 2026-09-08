@@ -46,13 +46,13 @@ import {
   cadastrarComSenha,
   entrarComGoogle,
   entrarComSenha,
+  obterSessaoAtual,
   obterUsuarioAtual,
   recuperarSenha,
   sair,
   salvarSessaoDoRetorno,
   supabase,
   supabaseConfigurado,
-  trocarCodigoPorSessao,
 } from './infrastructure/supabase/cliente.mjs';
 import { montar as montarGrafico } from './ui/graficos/GraficoNarrado.mjs';
 
@@ -116,9 +116,15 @@ function desenhar(filtro = filtroAtual) {
     return;
   }
   if (rotaAtual() === '/auth/callback' && !auth.usuario) {
-    const erroRetorno = retornoAuthDaUrl({ rota: rotaAtual(), busca: window.location.search, hash: window.location.hash })?.mensagem;
-    if (erroRetorno) {
-      auth = { usuario: null, carregando: false, mensagem: erroRetorno };
+    const retorno = retornoAuthDaUrl({ rota: rotaAtual(), busca: window.location.search, hash: window.location.hash });
+    if (retorno?.mensagem) {
+      auth = { usuario: null, carregando: false, mensagem: retorno.mensagem };
+      navegarPara('/entrar');
+      desenharEntrada('entrar');
+      return;
+    }
+    if (!retorno) {
+      auth = { usuario: null, carregando: false, mensagem: 'Nao foi possivel concluir a entrada. Tente novamente.' };
       navegarPara('/entrar');
       desenharEntrada('entrar');
       return;
@@ -399,7 +405,7 @@ function desenharEntrada(modo = 'entrar') {
         ${
           recuperacao
             ? ''
-            : `<button type="button" class="secondary-button" id="entrar-google">Entrar com Google</button>`
+            : `<button type="button" class="secondary-button" id="entrar-google">${cadastro ? 'Criar com Google' : 'Entrar com Google'}</button>`
         }
         ${auth.mensagem ? `<p class="notice">${escapeHtml(auth.mensagem)}</p>` : ''}
         <div class="auth-links">
@@ -665,7 +671,7 @@ async function concluirRetornoAuth() {
   try {
     const { data, error } =
       retorno.tipo === 'codigo'
-        ? await trocarCodigoPorSessao({ codigo: retorno.codigo })
+        ? await aguardarSessaoAutomatica()
         : await salvarSessaoDoRetorno({ accessToken: retorno.accessToken, refreshToken: retorno.refreshToken });
     if (error) throw error;
     auth = { usuario: data.session?.user ?? data.user ?? null, carregando: false, mensagem: '' };
@@ -675,6 +681,22 @@ async function concluirRetornoAuth() {
     navegarPara('/entrar');
   }
   return true;
+}
+
+async function aguardarSessaoAutomatica() {
+  for (let tentativa = 0; tentativa < 20; tentativa += 1) {
+    const { data, error } = await obterSessaoAtual();
+    if (error) return { data, error };
+    if (data.session) return { data, error: null };
+    await esperar(250);
+  }
+  return { data: { session: null }, error: new Error('A sessao nao foi confirmada pelo Supabase.') };
+}
+
+function esperar(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
 }
 
 function navegarPara(rota) {
