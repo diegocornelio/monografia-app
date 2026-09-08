@@ -37,6 +37,11 @@ export function destinoNovaSenha({ origem, origemPublica = ORIGEM_PUBLICA_PADRAO
   return `${origemAuth({ origem, origemPublica })}/nova-senha`;
 }
 
+export function destinoHomeAuth({ origem, origemPublica = ORIGEM_PUBLICA_PADRAO }) {
+  const destino = `${origemAuth({ origem, origemPublica })}/app`;
+  return destino.startsWith(semBarraFinal(origem)) ? '/app' : destino;
+}
+
 export function retornoAuthDaUrl({ rota, busca = '', hash = '' }) {
   const parametrosBusca = new URLSearchParams(String(busca).replace(/^\?/, ''));
   const parametrosHash = new URLSearchParams(String(hash).replace(/^#/, ''));

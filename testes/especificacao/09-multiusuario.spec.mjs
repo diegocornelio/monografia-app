@@ -75,6 +75,11 @@ suite('Isolamento da orquestracao de IA', { modulo: () => import('../../src/doma
     assert.equal(m.destinoNovaSenha({ origem: 'http://127.0.0.1:5173' }), 'https://fichario-9ob.pages.dev/nova-senha');
   });
 
+  caso('sucesso de auth vindo de localhost abre a home publicada', ['F066'], (m) => {
+    assert.equal(m.destinoHomeAuth({ origem: 'http://localhost:3000' }), 'https://fichario-9ob.pages.dev/app');
+    assert.equal(m.destinoHomeAuth({ origem: 'https://fichario-9ob.pages.dev' }), '/app');
+  });
+
   caso('retorno do Google com codigo ou token finaliza na home do app', ['F066'], (m) => {
     assert.deepEqual(m.retornoAuthDaUrl({ rota: '/auth/callback', busca: '?code=abc123', hash: '' }), {
       tipo: 'codigo',

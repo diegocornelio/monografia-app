@@ -7,7 +7,7 @@ import { avaliar } from './domain/acervo/dedup.mjs';
 import { lerBibTeX } from './domain/acervo/importadores.mjs';
 import { filtrar } from './domain/busca.mjs';
 import { mascarar } from './domain/agente/credencial.mjs';
-import { destinoCallbackAuth, destinoNovaSenha, protegerRota, retornoAuthDaUrl } from './domain/acesso/rotas.mjs';
+import { destinoCallbackAuth, destinoHomeAuth, destinoNovaSenha, protegerRota, retornoAuthDaUrl } from './domain/acesso/rotas.mjs';
 import { apresentar, criarCitacao } from './domain/citacao.mjs';
 import { criarFicha } from './domain/ficha.mjs';
 import { validarLimite } from './domain/limites.mjs';
@@ -600,7 +600,7 @@ async function enviarAuth(evento, modo) {
     carregando: false,
     mensagem: data.session ? '' : 'Cadastro criado. Confirme o email para entrar.',
   };
-  if (auth.usuario) navegarPara('/app');
+  if (auth.usuario) navegarPara(homeDepoisDoAuth());
   desenhar();
 }
 
@@ -675,7 +675,7 @@ async function concluirRetornoAuth() {
         : await salvarSessaoDoRetorno({ accessToken: retorno.accessToken, refreshToken: retorno.refreshToken });
     if (error) throw error;
     auth = { usuario: data.session?.user ?? data.user ?? null, carregando: false, mensagem: '' };
-    navegarPara(retorno.destino);
+    navegarPara(homeDepoisDoAuth());
   } catch (error) {
     auth = { usuario: null, carregando: false, mensagem: error.message };
     navegarPara('/entrar');
@@ -700,12 +700,20 @@ function esperar(ms) {
 }
 
 function navegarPara(rota) {
+  if (/^https?:\/\//.test(rota)) {
+    window.location.replace(rota);
+    return;
+  }
   window.history.pushState({}, '', rota);
 }
 
 function irPara(rota) {
   navegarPara(rota);
   desenhar();
+}
+
+function homeDepoisDoAuth() {
+  return destinoHomeAuth({ origem: window.location.origin, origemPublica: import.meta.env.VITE_APP_URL });
 }
 
 function rotaAtual() {
