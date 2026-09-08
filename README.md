@@ -43,11 +43,19 @@ depois de `auth.getUser()` confirmar uma sessão ativa. Configure:
 cp .env.example .env
 ```
 
-Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` com os valores
-do projeto Supabase. No painel do Supabase, habilite o provedor Email em
-Authentication > Providers e cadastre a URL publicada do app em Authentication >
-URL Configuration. A rota `/entrar` cria sessão, `/cadastrar` cria conta e
-`/app` é protegida.
+Preencha `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` e `VITE_APP_URL`
+com os valores do projeto. No painel do Supabase, habilite o provedor Email e o
+provedor Google em Authentication > Providers. Em Authentication > URL
+Configuration, use `https://fichario-9ob.pages.dev` como Site URL e permita
+estes retornos:
+
+```text
+https://fichario-9ob.pages.dev/auth/callback
+https://fichario-9ob.pages.dev/nova-senha
+```
+
+A rota `/entrar` cria sessão, `/cadastrar` cria conta, `/recuperar-senha`
+envia o email de recuperação e `/app` é protegida.
 
 ## Arranque do repositório
 

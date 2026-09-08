@@ -566,7 +566,7 @@ async function enviarAuth(evento, modo) {
   if (modo === 'recuperar') {
     const { error } = await recuperarSenha({
       email: dados.email,
-      redirectTo: destinoNovaSenha({ origem: window.location.origin }),
+      redirectTo: destinoNovaSenha({ origem: window.location.origin, origemPublica: import.meta.env.VITE_APP_URL }),
     });
     auth = {
       usuario: null,
@@ -595,7 +595,7 @@ async function enviarAuth(evento, modo) {
 async function entrarGoogle() {
   auth = { ...auth, mensagem: '' };
   const { error } = await entrarComGoogle({
-    redirectTo: destinoCallbackAuth({ origem: window.location.origin }),
+    redirectTo: destinoCallbackAuth({ origem: window.location.origin, origemPublica: import.meta.env.VITE_APP_URL }),
   });
   if (error) {
     auth = { usuario: null, carregando: false, mensagem: error.message };

@@ -70,6 +70,11 @@ suite('Isolamento da orquestracao de IA', { modulo: () => import('../../src/doma
     assert.equal(m.destinoNovaSenha({ origem: 'https://fichario-9ob.pages.dev/' }), 'https://fichario-9ob.pages.dev/nova-senha');
   });
 
+  caso('links de auth nunca voltam para localhost quando existe pagina publicada', ['F066'], (m) => {
+    assert.equal(m.destinoCallbackAuth({ origem: 'http://localhost:3000' }), 'https://fichario-9ob.pages.dev/auth/callback');
+    assert.equal(m.destinoNovaSenha({ origem: 'http://127.0.0.1:5173' }), 'https://fichario-9ob.pages.dev/nova-senha');
+  });
+
   caso('nenhuma rota de agente e resolvida para orientador ou leitor', ['F067'], (m) => {
     for (const papel of ['orientador', 'leitor']) {
       for (const rota of rotasDeAgente) {

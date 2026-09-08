@@ -7,6 +7,7 @@ const ROTAS_ORIENTADOR = [
 
 const ROTAS_AGENTE = ['/agente', '/agente/chaves', '/agente/prompts', '/agente/custos', '/agente/auditoria'];
 const ROTAS_PUBLICAS = ['/entrar', '/cadastrar', '/recuperar-senha', '/nova-senha', '/auth/callback'];
+const ORIGEM_PUBLICA_PADRAO = 'https://fichario-9ob.pages.dev';
 
 export function resolver({ papel, rota, publicada = false }) {
   if (ROTAS_AGENTE.includes(rota) && papel !== 'autor') {
@@ -28,12 +29,12 @@ export function consultaDaView({ papel, projetoId }) {
   };
 }
 
-export function destinoCallbackAuth({ origem }) {
-  return `${semBarraFinal(origem)}/auth/callback`;
+export function destinoCallbackAuth({ origem, origemPublica = ORIGEM_PUBLICA_PADRAO }) {
+  return `${origemAuth({ origem, origemPublica })}/auth/callback`;
 }
 
-export function destinoNovaSenha({ origem }) {
-  return `${semBarraFinal(origem)}/nova-senha`;
+export function destinoNovaSenha({ origem, origemPublica = ORIGEM_PUBLICA_PADRAO }) {
+  return `${origemAuth({ origem, origemPublica })}/nova-senha`;
 }
 
 export function protegerRota({ rota, usuario }) {
@@ -46,4 +47,12 @@ export function protegerRota({ rota, usuario }) {
 
 function semBarraFinal(valor) {
   return String(valor).replace(/\/$/, '');
+}
+
+function origemAuth({ origem, origemPublica }) {
+  const normalizada = semBarraFinal(origem);
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalizada)) {
+    return semBarraFinal(origemPublica || ORIGEM_PUBLICA_PADRAO);
+  }
+  return normalizada;
 }
