@@ -26,8 +26,23 @@ export async function entrarComSenha({ email, senha }) {
   return supabase.auth.signInWithPassword({ email, password: senha });
 }
 
+export async function entrarComGoogle({ redirectTo }) {
+  return supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo },
+  });
+}
+
 export async function cadastrarComSenha({ email, senha }) {
   return supabase.auth.signUp({ email, password: senha });
+}
+
+export async function recuperarSenha({ email, redirectTo }) {
+  return supabase.auth.resetPasswordForEmail(email, { redirectTo });
+}
+
+export async function atualizarSenha({ senha }) {
+  return supabase.auth.updateUser({ password: senha });
 }
 
 export async function sair() {

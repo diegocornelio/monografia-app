@@ -55,6 +55,23 @@ body {
   text-decoration: underline;
 }
 
+.secondary-button {
+  background: #fffdf9;
+  color: #2f5f6a;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.secondary-button:hover {
+  background: #edf6f8;
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .app-shell {
   min-height: 100vh;
   padding: 32px;

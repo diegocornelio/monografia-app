@@ -6,7 +6,7 @@ const ROTAS_ORIENTADOR = [
 ];
 
 const ROTAS_AGENTE = ['/agente', '/agente/chaves', '/agente/prompts', '/agente/custos', '/agente/auditoria'];
-const ROTAS_PUBLICAS = ['/entrar', '/cadastrar', '/auth/callback'];
+const ROTAS_PUBLICAS = ['/entrar', '/cadastrar', '/recuperar-senha', '/nova-senha', '/auth/callback'];
 
 export function resolver({ papel, rota, publicada = false }) {
   if (ROTAS_AGENTE.includes(rota) && papel !== 'autor') {
@@ -28,10 +28,22 @@ export function consultaDaView({ papel, projetoId }) {
   };
 }
 
+export function destinoCallbackAuth({ origem }) {
+  return `${semBarraFinal(origem)}/auth/callback`;
+}
+
+export function destinoNovaSenha({ origem }) {
+  return `${semBarraFinal(origem)}/nova-senha`;
+}
+
 export function protegerRota({ rota, usuario }) {
   if (ROTAS_PUBLICAS.includes(rota)) return { permitido: true, status: 200 };
   if (!usuario?.id) {
     return { permitido: false, status: 302, destino: '/entrar', motivo: 'sessaoAusente' };
   }
   return { permitido: true, status: 200 };
+}
+
+function semBarraFinal(valor) {
+  return String(valor).replace(/\/$/, '');
 }

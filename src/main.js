@@ -7,7 +7,7 @@ import { avaliar } from './domain/acervo/dedup.mjs';
 import { lerBibTeX } from './domain/acervo/importadores.mjs';
 import { filtrar } from './domain/busca.mjs';
 import { mascarar } from './domain/agente/credencial.mjs';
-import { protegerRota } from './domain/acesso/rotas.mjs';
+import { destinoCallbackAuth, destinoNovaSenha, protegerRota } from './domain/acesso/rotas.mjs';
 import { apresentar, criarCitacao } from './domain/citacao.mjs';
 import { criarFicha } from './domain/ficha.mjs';
 import { validarLimite } from './domain/limites.mjs';
@@ -42,9 +42,12 @@ import {
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
 import { criarTag, linhaDeTags } from './domain/tag.mjs';
 import {
+  atualizarSenha,
   cadastrarComSenha,
+  entrarComGoogle,
   entrarComSenha,
   obterUsuarioAtual,
+  recuperarSenha,
   sair,
   supabase,
   supabaseConfigurado,
@@ -99,9 +102,31 @@ function desenhar(filtro = filtroAtual) {
     desenharCarregandoAuth();
     return;
   }
+  if (auth.usuario && ['/entrar', '/cadastrar', '/recuperar-senha', '/auth/callback'].includes(rotaAtual())) {
+    navegarPara('/app');
+  }
+  if (['/entrar', '/cadastrar', '/recuperar-senha'].includes(rotaAtual())) {
+    desenharEntrada(modoAuthDaRota());
+    return;
+  }
+  if (rotaAtual() === '/nova-senha') {
+    desenharNovaSenha();
+    return;
+  }
+  if (rotaAtual() === '/auth/callback' && !auth.usuario) {
+    const erroRetorno = erroAuthDaUrl();
+    if (erroRetorno) {
+      auth = { usuario: null, carregando: false, mensagem: erroRetorno };
+      navegarPara('/entrar');
+      desenharEntrada('entrar');
+      return;
+    }
+    desenharCarregandoAuth();
+    return;
+  }
   const decisaoRota = protegerRota({ rota: rotaAtual(), usuario: auth.usuario });
   if (!decisaoRota.permitido) {
-    desenharEntrada(rotaAtual() === '/cadastrar' ? 'cadastrar' : 'entrar');
+    desenharEntrada(modoAuthDaRota());
     return;
   }
 
@@ -354,23 +379,55 @@ function desenharCarregandoAuth() {
 
 function desenharEntrada(modo = 'entrar') {
   const cadastro = modo === 'cadastrar';
+  const recuperacao = modo === 'recuperar';
   document.querySelector('#app').innerHTML = `
     <main class="auth-shell">
       <section class="auth-panel">
-        <p class="eyebrow">${cadastro ? 'Criar acesso' : 'Acesso protegido'}</p>
-        <h1>${cadastro ? 'Cadastrar' : 'Entrar'}</h1>
+        <p class="eyebrow">${recuperacao ? 'Recuperar acesso' : cadastro ? 'Criar acesso' : 'Acesso protegido'}</p>
+        <h1>${recuperacao ? 'Recuperar senha' : cadastro ? 'Cadastrar' : 'Entrar'}</h1>
         <form id="form-auth" class="stack">
           <input name="email" type="email" autocomplete="email" placeholder="Email" required />
-          <input name="senha" type="password" autocomplete="${cadastro ? 'new-password' : 'current-password'}" placeholder="Senha" minlength="6" required />
-          <button type="submit">${cadastro ? 'Criar conta' : 'Entrar'}</button>
+          ${
+            recuperacao
+              ? ''
+              : `<input name="senha" type="password" autocomplete="${cadastro ? 'new-password' : 'current-password'}" placeholder="Senha" minlength="6" required />`
+          }
+          <button type="submit">${recuperacao ? 'Enviar recuperacao' : cadastro ? 'Criar conta' : 'Entrar'}</button>
         </form>
+        ${
+          recuperacao
+            ? ''
+            : `<button type="button" class="secondary-button" id="entrar-google">Entrar com Google</button>`
+        }
         ${auth.mensagem ? `<p class="notice">${escapeHtml(auth.mensagem)}</p>` : ''}
-        <button type="button" class="link-button" id="trocar-auth">${cadastro ? 'Ja tenho conta' : 'Criar conta'}</button>
+        <div class="auth-links">
+          <button type="button" class="link-button" id="trocar-auth">${cadastro || recuperacao ? 'Ja tenho conta' : 'Criar conta'}</button>
+          ${cadastro || recuperacao ? '' : '<button type="button" class="link-button" id="recuperar-auth">Esqueci minha senha</button>'}
+        </div>
       </section>
     </main>
   `;
   document.querySelector('#form-auth').addEventListener('submit', (evento) => enviarAuth(evento, modo));
-  document.querySelector('#trocar-auth').addEventListener('click', () => navegarPara(cadastro ? '/entrar' : '/cadastrar'));
+  document.querySelector('#entrar-google')?.addEventListener('click', entrarGoogle);
+  document.querySelector('#trocar-auth').addEventListener('click', () => navegarPara(cadastro || recuperacao ? '/entrar' : '/cadastrar'));
+  document.querySelector('#recuperar-auth')?.addEventListener('click', () => navegarPara('/recuperar-senha'));
+}
+
+function desenharNovaSenha() {
+  document.querySelector('#app').innerHTML = `
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <p class="eyebrow">Nova senha</p>
+        <h1>Definir senha</h1>
+        <form id="form-nova-senha" class="stack">
+          <input name="senha" type="password" autocomplete="new-password" placeholder="Nova senha" minlength="6" required />
+          <button type="submit">Salvar senha</button>
+        </form>
+        ${auth.mensagem ? `<p class="notice">${escapeHtml(auth.mensagem)}</p>` : ''}
+      </section>
+    </main>
+  `;
+  document.querySelector('#form-nova-senha').addEventListener('submit', salvarNovaSenha);
 }
 
 function criarNovaFicha(evento) {
@@ -506,6 +563,19 @@ async function enviarAuth(evento, modo) {
   evento.preventDefault();
   const dados = Object.fromEntries(new FormData(evento.target));
   auth = { ...auth, mensagem: '' };
+  if (modo === 'recuperar') {
+    const { error } = await recuperarSenha({
+      email: dados.email,
+      redirectTo: destinoNovaSenha({ origem: window.location.origin }),
+    });
+    auth = {
+      usuario: null,
+      carregando: false,
+      mensagem: error ? error.message : 'Enviamos um link de recuperacao para seu email.',
+    };
+    desenhar();
+    return;
+  }
   const acao = modo === 'cadastrar' ? cadastrarComSenha : entrarComSenha;
   const { data, error } = await acao({ email: dados.email, senha: dados.senha });
   if (error) {
@@ -519,6 +589,30 @@ async function enviarAuth(evento, modo) {
     mensagem: data.session ? '' : 'Cadastro criado. Confirme o email para entrar.',
   };
   if (auth.usuario) navegarPara('/app');
+  desenhar();
+}
+
+async function entrarGoogle() {
+  auth = { ...auth, mensagem: '' };
+  const { error } = await entrarComGoogle({
+    redirectTo: destinoCallbackAuth({ origem: window.location.origin }),
+  });
+  if (error) {
+    auth = { usuario: null, carregando: false, mensagem: error.message };
+    desenhar();
+  }
+}
+
+async function salvarNovaSenha(evento) {
+  evento.preventDefault();
+  const dados = Object.fromEntries(new FormData(evento.target));
+  const { data, error } = await atualizarSenha({ senha: dados.senha });
+  auth = {
+    usuario: data?.user ?? auth.usuario,
+    carregando: false,
+    mensagem: error ? error.message : '',
+  };
+  if (!error) navegarPara('/app');
   desenhar();
 }
 
@@ -540,9 +634,13 @@ async function iniciarAutenticacao() {
   } catch (error) {
     auth = { usuario: null, carregando: false, mensagem: error.message };
   }
-  supabase.auth.onAuthStateChange((_evento, sessao) => {
+  supabase.auth.onAuthStateChange((evento, sessao) => {
     auth = { usuario: sessao?.user ?? null, carregando: false, mensagem: '' };
-    if (auth.usuario && rotaAtual() !== '/app') navegarPara('/app');
+    if (evento === 'PASSWORD_RECOVERY') {
+      navegarPara('/nova-senha');
+    } else if (auth.usuario && rotaAtual() !== '/app') {
+      navegarPara('/app');
+    }
     desenhar();
   });
   desenhar();
@@ -554,6 +652,18 @@ function navegarPara(rota) {
 
 function rotaAtual() {
   return window.location.pathname === '/' ? '/app' : window.location.pathname;
+}
+
+function modoAuthDaRota() {
+  if (rotaAtual() === '/cadastrar') return 'cadastrar';
+  if (rotaAtual() === '/recuperar-senha') return 'recuperar';
+  return 'entrar';
+}
+
+function erroAuthDaUrl() {
+  const busca = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  return busca.get('error_description') ?? hash.get('error_description') ?? busca.get('error') ?? hash.get('error');
 }
 
 function cardFicha(ficha) {

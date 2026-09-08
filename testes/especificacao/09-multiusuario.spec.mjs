@@ -60,9 +60,14 @@ suite('Isolamento da orquestracao de IA', { modulo: () => import('../../src/doma
   });
 
   caso('paginas de entrada continuam publicas para criar sessao', ['F066'], (m) => {
-    for (const rota of ['/entrar', '/cadastrar', '/auth/callback']) {
+    for (const rota of ['/entrar', '/cadastrar', '/recuperar-senha', '/nova-senha', '/auth/callback']) {
       assert.equal(m.protegerRota({ rota, usuario: null }).permitido, true, rota);
     }
+  });
+
+  caso('links enviados pelo Supabase voltam para paginas publicas do app', ['F066'], (m) => {
+    assert.equal(m.destinoCallbackAuth({ origem: 'https://fichario-9ob.pages.dev/' }), 'https://fichario-9ob.pages.dev/auth/callback');
+    assert.equal(m.destinoNovaSenha({ origem: 'https://fichario-9ob.pages.dev/' }), 'https://fichario-9ob.pages.dev/nova-senha');
   });
 
   caso('nenhuma rota de agente e resolvida para orientador ou leitor', ['F067'], (m) => {
