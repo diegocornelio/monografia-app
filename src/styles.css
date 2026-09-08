@@ -12,6 +12,49 @@ body {
   margin: 0;
 }
 
+.auth-shell {
+  align-items: center;
+  display: grid;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.auth-panel {
+  background: #fffdf9;
+  border: 1px solid #e5d8c8;
+  border-radius: 8px;
+  margin: 0 auto;
+  max-width: 480px;
+  padding: 28px;
+  width: 100%;
+}
+
+.auth-panel h1 {
+  font-size: 2.5rem;
+  margin-bottom: 16px;
+}
+
+.notice {
+  background: #eef5f1;
+  border: 1px solid #9fbdac;
+  border-radius: 6px;
+  color: #2d5942;
+  padding: 12px;
+}
+
+.link-button {
+  background: transparent;
+  border-color: transparent;
+  color: #2f5f6a;
+  padding-left: 0;
+}
+
+.link-button:hover {
+  background: transparent;
+  color: #244d56;
+  text-decoration: underline;
+}
+
 .app-shell {
   min-height: 100vh;
   padding: 32px;

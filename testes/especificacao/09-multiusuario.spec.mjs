@@ -43,6 +43,28 @@ suite('Papeis e capacidades', { modulo: () => import('../../src/domain/acesso/pa
 suite('Isolamento da orquestracao de IA', { modulo: () => import('../../src/domain/acesso/rotas.mjs') }, () => {
   const rotasDeAgente = ['/agente', '/agente/chaves', '/agente/prompts', '/agente/custos', '/agente/auditoria'];
 
+  caso('rota protegida sem usuario confirmado redireciona para entrada', ['F049', 'F066'], (m) => {
+    assert.deepEqual(m.protegerRota({ rota: '/app', usuario: null }), {
+      permitido: false,
+      status: 302,
+      destino: '/entrar',
+      motivo: 'sessaoAusente',
+    });
+  });
+
+  caso('usuario autenticado acessa rota protegida de trabalho', ['F049', 'F066'], (m) => {
+    assert.deepEqual(m.protegerRota({ rota: '/app', usuario: { id: 'u1', email: 'diego@example.com' } }), {
+      permitido: true,
+      status: 200,
+    });
+  });
+
+  caso('paginas de entrada continuam publicas para criar sessao', ['F066'], (m) => {
+    for (const rota of ['/entrar', '/cadastrar', '/auth/callback']) {
+      assert.equal(m.protegerRota({ rota, usuario: null }).permitido, true, rota);
+    }
+  });
+
   caso('nenhuma rota de agente e resolvida para orientador ou leitor', ['F067'], (m) => {
     for (const papel of ['orientador', 'leitor']) {
       for (const rota of rotasDeAgente) {

@@ -32,7 +32,17 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run teste:unit
+      - name: conferir variaveis publicas do supabase
+        run: |
+          test -n "${VITE_SUPABASE_URL}"
+          test -n "${VITE_SUPABASE_PUBLISHABLE_KEY}"
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
 
       - name: publicar
         uses: cloudflare/wrangler-action@v3

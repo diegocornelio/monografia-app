@@ -7,6 +7,7 @@ import { avaliar } from './domain/acervo/dedup.mjs';
 import { lerBibTeX } from './domain/acervo/importadores.mjs';
 import { filtrar } from './domain/busca.mjs';
 import { mascarar } from './domain/agente/credencial.mjs';
+import { protegerRota } from './domain/acesso/rotas.mjs';
 import { apresentar, criarCitacao } from './domain/citacao.mjs';
 import { criarFicha } from './domain/ficha.mjs';
 import { validarLimite } from './domain/limites.mjs';
@@ -40,11 +41,20 @@ import {
 } from './domain/projeto.mjs';
 import { criarTarefa, moverTarefa, resumoBacklog } from './domain/backlog.mjs';
 import { criarTag, linhaDeTags } from './domain/tag.mjs';
+import {
+  cadastrarComSenha,
+  entrarComSenha,
+  obterUsuarioAtual,
+  sair,
+  supabase,
+  supabaseConfigurado,
+} from './infrastructure/supabase/cliente.mjs';
 import { montar as montarGrafico } from './ui/graficos/GraficoNarrado.mjs';
 
 const CHAVE_ESTADO = 'fichario.estado.v1';
 let filtroAtual = '';
 let chaveAgenteSessao = null;
+let auth = { usuario: null, carregando: true, mensagem: '' };
 
 const estadoInicial = {
   fonte: {
@@ -81,6 +91,20 @@ let estado = carregarEstado();
 
 function desenhar(filtro = filtroAtual) {
   filtroAtual = filtro;
+  if (!supabaseConfigurado) {
+    desenharConfiguracaoSupabase();
+    return;
+  }
+  if (auth.carregando) {
+    desenharCarregandoAuth();
+    return;
+  }
+  const decisaoRota = protegerRota({ rota: rotaAtual(), usuario: auth.usuario });
+  if (!decisaoRota.permitido) {
+    desenharEntrada(rotaAtual() === '/cadastrar' ? 'cadastrar' : 'entrar');
+    return;
+  }
+
   const acervo = estado.fichas.map((ficha) => ({
     ...ficha,
     autor: estado.fonte.autorSobrenome,
@@ -121,6 +145,7 @@ function desenhar(filtro = filtroAtual) {
         <div>
           <p class="eyebrow">Fichario solo</p>
           <h1>Fichamento editavel</h1>
+          <p class="muted">Sessao: ${escapeHtml(auth.usuario.email ?? auth.usuario.id)}</p>
         </div>
         <div class="toolbar-actions">
           <input id="busca" value="${escapeAttr(filtro)}" placeholder="Buscar assunto ou obra" />
@@ -130,6 +155,7 @@ function desenhar(filtro = filtroAtual) {
             <input id="importar" type="file" accept="application/json" />
           </label>
           <button type="button" id="recomecar">Recomecar</button>
+          <button type="button" id="sair">Sair</button>
         </div>
       </section>
 
@@ -261,6 +287,7 @@ function conectarEventos() {
   document.querySelector('#exportar').addEventListener('click', baixarProjeto);
   document.querySelector('#importar').addEventListener('change', importarArquivo);
   document.querySelector('#recomecar').addEventListener('click', recomecarProjeto);
+  document.querySelector('#sair').addEventListener('click', encerrarSessao);
 
   document.querySelectorAll('[data-subir]').forEach((botao) => botao.addEventListener('click', () => moverBloco(botao.dataset.subir, -1)));
   document.querySelectorAll('[data-descer]').forEach((botao) => botao.addEventListener('click', () => moverBloco(botao.dataset.descer, 1)));
@@ -299,6 +326,51 @@ function conectarEventos() {
   document.querySelectorAll('[data-citacao]').forEach((cartao) => {
     cartao.addEventListener('dragstart', (evento) => evento.dataTransfer.setData('text/plain', cartao.dataset.citacao));
   });
+}
+
+function desenharConfiguracaoSupabase() {
+  document.querySelector('#app').innerHTML = `
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <p class="eyebrow">Configuracao necessaria</p>
+        <h1>Conecte o Supabase</h1>
+        <p>Crie um arquivo .env com VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY para liberar entrada, cadastro e rotas protegidas.</p>
+      </section>
+    </main>
+  `;
+}
+
+function desenharCarregandoAuth() {
+  document.querySelector('#app').innerHTML = `
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <p class="eyebrow">Fichario solo</p>
+        <h1>Validando sessao</h1>
+        <p>Aguarde enquanto o Supabase confirma sua identidade.</p>
+      </section>
+    </main>
+  `;
+}
+
+function desenharEntrada(modo = 'entrar') {
+  const cadastro = modo === 'cadastrar';
+  document.querySelector('#app').innerHTML = `
+    <main class="auth-shell">
+      <section class="auth-panel">
+        <p class="eyebrow">${cadastro ? 'Criar acesso' : 'Acesso protegido'}</p>
+        <h1>${cadastro ? 'Cadastrar' : 'Entrar'}</h1>
+        <form id="form-auth" class="stack">
+          <input name="email" type="email" autocomplete="email" placeholder="Email" required />
+          <input name="senha" type="password" autocomplete="${cadastro ? 'new-password' : 'current-password'}" placeholder="Senha" minlength="6" required />
+          <button type="submit">${cadastro ? 'Criar conta' : 'Entrar'}</button>
+        </form>
+        ${auth.mensagem ? `<p class="notice">${escapeHtml(auth.mensagem)}</p>` : ''}
+        <button type="button" class="link-button" id="trocar-auth">${cadastro ? 'Ja tenho conta' : 'Criar conta'}</button>
+      </section>
+    </main>
+  `;
+  document.querySelector('#form-auth').addEventListener('submit', (evento) => enviarAuth(evento, modo));
+  document.querySelector('#trocar-auth').addEventListener('click', () => navegarPara(cadastro ? '/entrar' : '/cadastrar'));
 }
 
 function criarNovaFicha(evento) {
@@ -430,6 +502,60 @@ function configurarAgente(evento) {
   desenhar();
 }
 
+async function enviarAuth(evento, modo) {
+  evento.preventDefault();
+  const dados = Object.fromEntries(new FormData(evento.target));
+  auth = { ...auth, mensagem: '' };
+  const acao = modo === 'cadastrar' ? cadastrarComSenha : entrarComSenha;
+  const { data, error } = await acao({ email: dados.email, senha: dados.senha });
+  if (error) {
+    auth = { usuario: null, carregando: false, mensagem: error.message };
+    desenhar();
+    return;
+  }
+  auth = {
+    usuario: data.session?.user ?? null,
+    carregando: false,
+    mensagem: data.session ? '' : 'Cadastro criado. Confirme o email para entrar.',
+  };
+  if (auth.usuario) navegarPara('/app');
+  desenhar();
+}
+
+async function encerrarSessao() {
+  const { error } = await sair();
+  auth = { usuario: null, carregando: false, mensagem: error ? error.message : '' };
+  navegarPara('/entrar');
+  desenhar();
+}
+
+async function iniciarAutenticacao() {
+  if (!supabaseConfigurado) {
+    auth = { usuario: null, carregando: false, mensagem: '' };
+    desenhar();
+    return;
+  }
+  try {
+    auth = { usuario: await obterUsuarioAtual(), carregando: false, mensagem: '' };
+  } catch (error) {
+    auth = { usuario: null, carregando: false, mensagem: error.message };
+  }
+  supabase.auth.onAuthStateChange((_evento, sessao) => {
+    auth = { usuario: sessao?.user ?? null, carregando: false, mensagem: '' };
+    if (auth.usuario && rotaAtual() !== '/app') navegarPara('/app');
+    desenhar();
+  });
+  desenhar();
+}
+
+function navegarPara(rota) {
+  window.history.pushState({}, '', rota);
+}
+
+function rotaAtual() {
+  return window.location.pathname === '/' ? '/app' : window.location.pathname;
+}
+
 function cardFicha(ficha) {
   const limite = validarLimite({ tipo: ficha.tipo, texto: ficha.assunto });
   return `
@@ -553,4 +679,6 @@ function cssEscape(valor) {
   return String(valor).replaceAll('\\', '\\\\').replaceAll('"', '\\"');
 }
 
+window.addEventListener('popstate', () => desenhar());
 desenhar();
+iniciarAutenticacao();

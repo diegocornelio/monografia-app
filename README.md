@@ -34,6 +34,21 @@ estatico do inicio ao fim, com Supabase consultado do navegador a partir da Fase
 5 e nenhum servidor de aplicacao proprio. A politica de estados e os portoes por fase estao em
 `docs/PLANO_DE_TESTES.md`.
 
+## Supabase Auth
+
+O front usa Supabase Auth diretamente no navegador e só renderiza o fichário
+depois de `auth.getUser()` confirmar uma sessão ativa. Configure:
+
+```bash
+cp .env.example .env
+```
+
+Preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` com os valores
+do projeto Supabase. No painel do Supabase, habilite o provedor Email em
+Authentication > Providers e cadastre a URL publicada do app em Authentication >
+URL Configuration. A rota `/entrar` cria sessão, `/cadastrar` cria conta e
+`/app` é protegida.
+
 ## Arranque do repositório
 
 ```bash
