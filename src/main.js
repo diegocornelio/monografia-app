@@ -651,9 +651,9 @@ async function iniciarAutenticacao() {
   supabase.auth.onAuthStateChange((evento, sessao) => {
     auth = { usuario: sessao?.user ?? null, carregando: false, mensagem: '' };
     if (evento === 'PASSWORD_RECOVERY') {
-      navegarPara('/nova-senha');
+      navegarPara(destinoNovaSenha({ origem: window.location.origin, origemPublica: import.meta.env.VITE_APP_URL }));
     } else if (auth.usuario && rotaAtual() !== '/app') {
-      navegarPara('/app');
+      navegarPara(homeDepoisDoAuth());
     }
     desenhar();
   });
